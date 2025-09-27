@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui.LifecycleEvents;
 using Syncfusion.Maui.Toolkit.Hosting;
+using MauiAppBrownianMotion.Utilities;
 
 #if WINDOWS
 using Microsoft.UI;
