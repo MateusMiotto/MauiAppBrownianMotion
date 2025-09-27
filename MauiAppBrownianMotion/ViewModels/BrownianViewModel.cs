@@ -169,8 +169,6 @@ namespace MauiAppBrownianMotion.ViewModels
 
                 var newPage = new MauiAppBrownianMotion.Pages.BrownianPage();
                 var vm2 = (newPage.BindingContext as BrownianViewModel)!;
-
-                // Copia inputs e opções
                 vm2.PrecoInicialInput = PrecoInicialInput;
                 vm2.VolatilidadePercentInput = VolatilidadePercentInput;
                 vm2.RetornoPercentInput = RetornoPercentInput;
@@ -180,13 +178,16 @@ namespace MauiAppBrownianMotion.ViewModels
                 vm2.IsBackgroundWindow = true;
 
                 int seq = NextBackgroundSequence();
-                newPage.Title = $"Solicitação de Execução em Segundo plano #{seq}";
+                string title = $"Solicitação de Execução em Segundo plano #{seq}";
+                newPage.Title = title; // mantém coerência interna
+                var window = new Window(newPage)
+                {
+                    Title = title // garante título da janela no Windows
+                };
 
-                Application.Current!.OpenWindow(new Window(newPage));
-
-                // Inicia processamento pesado na nova janela
+                Application.Current!.OpenWindow(window);
                 _ = vm2.RunSimulationAsync(heavy: true);
-                return false; // não processa na janela atual
+                return false;
             }
             return true;
         }
