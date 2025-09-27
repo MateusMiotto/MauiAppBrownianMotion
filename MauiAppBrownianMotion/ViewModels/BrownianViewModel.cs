@@ -294,19 +294,19 @@ namespace MauiAppBrownianMotion.ViewModels
                 for (int k = 0; k < sims; k++)
                 {
                     token.ThrowIfCancellationRequested();
-                    listSeq.Add(GenerateBromnianMotion(sigmaD, muD, precoInicial, dias, token));
+                    listSeq.Add(GenerateBrownianMotion(sigmaD, muD, precoInicial, dias, token));
                 }
                 return listSeq;
             }
 
-            // Pré-aloca lista com capacidade exata e placeholders para evitar cópia extra (antes: array + ToList()).
+            // Pré-aloca lista com capacidade exata e placeholders para evitar cópia extra.
             var list = new List<double[]>(sims);
             for (int i = 0; i < sims; i++) list.Add(Array.Empty<double>()); // placeholders
 
             int maxParallel = Math.Max(1, Environment.ProcessorCount - 1);
             Parallel.For(0, sims, new ParallelOptions { CancellationToken = token, MaxDegreeOfParallelism = maxParallel }, i =>
             {
-                list[i] = GenerateBromnianMotion(sigmaD, muD, precoInicial, dias, token);
+                list[i] = GenerateBrownianMotion(sigmaD, muD, precoInicial, dias, token);
             });
             return list;
         }
@@ -355,7 +355,7 @@ namespace MauiAppBrownianMotion.ViewModels
         #region Simulation helpers
 
         static readonly ThreadLocal<Random> s_random = new(() => new Random(Random.Shared.Next()));
-        public static double[] GenerateBromnianMotion(double sigma, double mean, double initialPrice, int numDays, CancellationToken token)
+        public static double[] GenerateBrownianMotion(double sigma, double mean, double initialPrice, int numDays, CancellationToken token)
         {
             var rand = s_random.Value!;
             double[] prices = new double[numDays];
