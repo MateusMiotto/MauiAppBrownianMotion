@@ -3,52 +3,201 @@
     x:Class="MauiAppBrownianMotion.Pages.BrownianPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
     xmlns:vm="clr-namespace:MauiAppBrownianMotion.ViewModels"
     Title="Brownian Motion"
     x:DataType="vm:BrownianViewModel">
 
+    <Grid x:Name="LayoutGrid">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition x:Name="ChartColumn" Width="*" />
+            <ColumnDefinition x:Name="PanelColumn" Width="340" />
+        </Grid.ColumnDefinitions>
 
-    <Grid>
-        <Grid ColumnDefinitions="*,320" RowDefinitions="*">
-            <!--  Gráfico  -->
-            <GraphicsView
-                x:Name="Chart"
-                Grid.RowSpan="2"
-                Drawable="{Binding Source={x:Reference Chart}, Path=BindingContext, Mode=OneWay}" />
+        <!--  Gráfico  -->
+        <GraphicsView
+            x:Name="Chart"
+            Grid.Row="0"
+            Grid.Column="0"
+            Drawable="{Binding Source={x:Reference Chart}, Path=BindingContext, Mode=OneWay}" />
 
-            <!--  Painel  -->
-            <VerticalStackLayout
-                Grid.Column="1"
-                Padding="16"
-                Spacing="8">
-                <Entry
-                    Keyboard="Numeric"
-                    Placeholder="Preço inicial"
-                    Text="{Binding PrecoInicial}" />
-                <Entry
-                    Keyboard="Numeric"
-                    Placeholder="Volatilidade (%) a.a."
-                    Text="{Binding VolatilidadePercent}" />
-                <Entry
-                    Keyboard="Numeric"
-                    Placeholder="Retorno (%) a.a."
-                    Text="{Binding RetornoPercent}" />
-                <Entry
-                    Keyboard="Numeric"
-                    Placeholder="Tempo (dias)"
-                    Text="{Binding TempoDias}" />
-                <Entry
-                    Keyboard="Numeric"
-                    Placeholder="Nº simulações"
-                    Text="{Binding NumeroSimulacoes}" />
+        <!--  Painel (modo Wide)  -->
+        <ContentView
+            x:Name="WidePanel"
+            Grid.Row="0"
+            Grid.Column="1"
+            Padding="16,16,16,24"
+            IsVisible="True">
+            <VerticalStackLayout Spacing="12">
+                <Grid
+                    ColumnDefinitions="Auto,*"
+                    ColumnSpacing="8"
+                    RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                    RowSpacing="8">
+                    <!--  Preço inicial  -->
+                    <Label
+                        Grid.Row="0"
+                        Grid.Column="0"
+                        Text="Preço inicial:"
+                        VerticalTextAlignment="Center" />
+                    <Entry
+                        x:Name="PrecoInicialEntry"
+                        Grid.Row="0"
+                        Grid.Column="1"
+                        Keyboard="Numeric"
+                        Text="{Binding PrecoInicial}" />
+                    <!--  Volatilidade  -->
+                    <Label
+                        Grid.Row="1"
+                        Grid.Column="0"
+                        Text="Volatilidade (% a.a.):"
+                        VerticalTextAlignment="Center" />
+                    <Entry
+                        x:Name="VolatilidadeEntry"
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        Keyboard="Numeric"
+                        Text="{Binding VolatilidadePercent}" />
+                    <!--  Retorno  -->
+                    <Label
+                        Grid.Row="2"
+                        Grid.Column="0"
+                        Text="Retorno (% a.a.):"
+                        VerticalTextAlignment="Center" />
+                    <Entry
+                        x:Name="RetornoEntry"
+                        Grid.Row="2"
+                        Grid.Column="1"
+                        Keyboard="Numeric"
+                        Text="{Binding RetornoPercent}" />
+                    <!--  Tempo dias  -->
+                    <Label
+                        Grid.Row="3"
+                        Grid.Column="0"
+                        Text="Tempo (dias):"
+                        VerticalTextAlignment="Center" />
+                    <Entry
+                        x:Name="TempoDiasEntry"
+                        Grid.Row="3"
+                        Grid.Column="1"
+                        Keyboard="Numeric"
+                        Text="{Binding TempoDias}" />
+                    <!--  Nº simulações  -->
+                    <Label
+                        Grid.Row="4"
+                        Grid.Column="0"
+                        Text="Nº simulações:"
+                        VerticalTextAlignment="Center" />
+                    <Entry
+                        x:Name="NumeroSimulacoesEntry"
+                        Grid.Row="4"
+                        Grid.Column="1"
+                        Keyboard="Numeric"
+                        Text="{Binding NumeroSimulacoes}" />
+                </Grid>
                 <Button
                     x:DataType="vm:BrownianViewModel"
                     Command="{Binding GerarSimulacaoCommand}"
                     Text="Gerar simulação" />
             </VerticalStackLayout>
-        </Grid>
+        </ContentView>
 
+        <!--  Painel (modo Narrow) - abaixo do gráfico  -->
+        <ContentView
+            x:Name="NarrowPanel"
+            Grid.Row="1"
+            Grid.Column="0"
+            Grid.ColumnSpan="2"
+            Padding="12,8"
+            IsVisible="False">
+            <VerticalStackLayout Spacing="8">
+                <FlexLayout
+                    AlignContent="Start"
+                    AlignItems="Start"
+                    Direction="Row"
+                    JustifyContent="Start"
+                    Wrap="Wrap">
+                    <VerticalStackLayout
+                        Margin="0,0,24,12"
+                        Spacing="4"
+                        WidthRequest="160">
+                        <Label Text="Preço inicial" />
+                        <Entry
+                            x:Name="PrecoInicialEntryN"
+                            Keyboard="Numeric"
+                            Text="{Binding PrecoInicial}" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout
+                        Margin="0,0,24,12"
+                        Spacing="4"
+                        WidthRequest="180">
+                        <Label Text="Volatilidade (% a.a.)" />
+                        <Entry
+                            x:Name="VolatilidadeEntryN"
+                            Keyboard="Numeric"
+                            Text="{Binding VolatilidadePercent}" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout
+                        Margin="0,0,24,12"
+                        Spacing="4"
+                        WidthRequest="160">
+                        <Label Text="Retorno (% a.a.)" />
+                        <Entry
+                            x:Name="RetornoEntryN"
+                            Keyboard="Numeric"
+                            Text="{Binding RetornoPercent}" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout
+                        Margin="0,0,24,12"
+                        Spacing="4"
+                        WidthRequest="140">
+                        <Label Text="Tempo (dias)" />
+                        <Entry
+                            x:Name="TempoDiasEntryN"
+                            Keyboard="Numeric"
+                            Text="{Binding TempoDias}" />
+                    </VerticalStackLayout>
+                    <VerticalStackLayout
+                        Margin="0,0,24,12"
+                        Spacing="4"
+                        WidthRequest="150">
+                        <Label Text="Nº simulações" />
+                        <Entry
+                            x:Name="NumeroSimulacoesEntryN"
+                            Keyboard="Numeric"
+                            Text="{Binding NumeroSimulacoes}" />
+                    </VerticalStackLayout>
+                </FlexLayout>
+                <Button
+                    x:DataType="vm:BrownianViewModel"
+                    Command="{Binding GerarSimulacaoCommand}"
+                    Text="Gerar simulação" />
+            </VerticalStackLayout>
+        </ContentView>
 
+        <!--  Visual States (alternados no code-behind)  -->
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="LayoutStates">
+                <VisualState x:Name="Narrow">
+                    <VisualState.Setters>
+                        <Setter TargetName="PanelColumn" Property="Width" Value="0" />
+                        <Setter TargetName="Chart" Property="Grid.ColumnSpan" Value="2" />
+                        <Setter TargetName="WidePanel" Property="IsVisible" Value="False" />
+                        <Setter TargetName="NarrowPanel" Property="IsVisible" Value="True" />
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="Wide">
+                    <VisualState.Setters>
+                        <Setter TargetName="PanelColumn" Property="Width" Value="340" />
+                        <Setter TargetName="Chart" Property="Grid.ColumnSpan" Value="1" />
+                        <Setter TargetName="WidePanel" Property="IsVisible" Value="True" />
+                        <Setter TargetName="NarrowPanel" Property="IsVisible" Value="False" />
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
     </Grid>
 </ContentPage>
