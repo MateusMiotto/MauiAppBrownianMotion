@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:behaviors="clr-namespace:MauiAppBrownianMotion.Behaviors"
+    xmlns:f="clr-namespace:Fonts"
     xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
     xmlns:vm="clr-namespace:MauiAppBrownianMotion.ViewModels"
     Title="Brownian Motion"
@@ -40,18 +41,69 @@
             <ColumnDefinition x:Name="PanelColumn" Width="340" />
         </Grid.ColumnDefinitions>
 
-        <!--  Gráfico  -->
-        <GraphicsView
-            x:Name="Chart"
+        <!--  Gráfico + Overlay de Zoom  -->
+        <Grid
             Grid.Row="0"
             Grid.Column="0"
-            Drawable="{Binding Source={x:Reference Chart}, Path=BindingContext, Mode=OneWay}">
-            <GraphicsView.GestureRecognizers>
-                <PinchGestureRecognizer PinchUpdated="OnChartPinch" />
-                <PanGestureRecognizer PanUpdated="OnChartPan" />
-                <TapGestureRecognizer NumberOfTapsRequired="2" Tapped="OnChartDoubleTap" />
-            </GraphicsView.GestureRecognizers>
-        </GraphicsView>
+            RowDefinitions="auto,*">
+            <!--  Barra de controle de zoom  -->
+            <Border
+                x:Name="ZoomOverlay"
+                Margin="8"
+                Padding="6,4"
+                BackgroundColor="#66000000"
+                HorizontalOptions="Start"
+                StrokeShape="RoundRectangle 6"
+                VerticalOptions="Start">
+                <HorizontalStackLayout
+                    HorizontalOptions="Center"
+                    Spacing="6"
+                    VerticalOptions="Center">
+                    <Button
+                        x:Name="ZoomOutButton"
+                        Padding="4"
+                        Clicked="OnZoomOutClicked"
+                        FontFamily="{x:Static f:FluentUI.FontFamily}"
+                        HeightRequest="32"
+                        Text="{x:Static f:FluentUI.zoom_out_24_regular}"
+                        WidthRequest="32" />
+                    <Button
+                        x:Name="ZoomResetButton"
+                        Padding="4"
+                        Clicked="OnZoomResetClicked"
+                        FontFamily="{x:Static f:FluentUI.FontFamily}"
+                        HeightRequest="32"
+                        Text="{x:Static f:FluentUI.arrow_reset_24_regular}"
+                        WidthRequest="32" />
+                    <Button
+                        x:Name="ZoomInButton"
+                        Padding="4"
+                        Clicked="OnZoomInClicked"
+                        FontFamily="{x:Static f:FluentUI.FontFamily}"
+                        HeightRequest="32"
+                        Text="{x:Static f:FluentUI.zoom_in_24_regular}"
+                        WidthRequest="32" />
+                    <Label
+                        x:Name="ZoomLabel"
+                        FontSize="12"
+                        HorizontalTextAlignment="Center"
+                        Text="1x"
+                        TextColor="White"
+                        VerticalTextAlignment="Center"
+                        WidthRequest="46" />
+                </HorizontalStackLayout>
+            </Border>
+            <GraphicsView
+                x:Name="Chart"
+                Grid.Row="1"
+                Drawable="{Binding Source={x:Reference Chart}, Path=BindingContext, Mode=OneWay}">
+                <GraphicsView.GestureRecognizers>
+                    <PinchGestureRecognizer PinchUpdated="OnChartPinch" />
+                    <PanGestureRecognizer PanUpdated="OnChartPan" />
+                    <TapGestureRecognizer NumberOfTapsRequired="2" Tapped="OnChartDoubleTap" />
+                </GraphicsView.GestureRecognizers>
+            </GraphicsView>
+        </Grid>
 
         <!--  Painel (modo Wide)  -->
         <ContentView
@@ -124,6 +176,7 @@
                         Text="{Binding TempoDiasInput}">
                         <Entry.Behaviors>
                             <behaviors:NumericEntryBehavior />
+                            <behaviors:IntegerMaxBehavior MaxValue="9999" />
                         </Entry.Behaviors>
                     </Entry>
                     <Label
@@ -139,6 +192,7 @@
                         Text="{Binding NumeroSimulacoesInput}">
                         <Entry.Behaviors>
                             <behaviors:NumericEntryBehavior />
+                            <behaviors:IntegerMaxBehavior MaxValue="9999" />
                         </Entry.Behaviors>
                     </Entry>
 
@@ -224,6 +278,7 @@
                             Text="{Binding TempoDiasInput}">
                             <Entry.Behaviors>
                                 <behaviors:NumericEntryBehavior />
+                                <behaviors:IntegerMaxBehavior MaxValue="9999" />
                             </Entry.Behaviors>
                         </Entry>
                     </VerticalStackLayout>
@@ -235,6 +290,7 @@
                             Text="{Binding NumeroSimulacoesInput}">
                             <Entry.Behaviors>
                                 <behaviors:NumericEntryBehavior />
+                                <behaviors:IntegerMaxBehavior MaxValue="9999" />
                             </Entry.Behaviors>
                         </Entry>
                     </VerticalStackLayout>
@@ -267,7 +323,6 @@
                 <VisualState x:Name="Narrow">
                     <VisualState.Setters>
                         <Setter TargetName="PanelColumn" Property="Width" Value="0" />
-                        <Setter TargetName="Chart" Property="Grid.ColumnSpan" Value="2" />
                         <Setter TargetName="WidePanel" Property="IsVisible" Value="False" />
                         <Setter TargetName="NarrowPanel" Property="IsVisible" Value="True" />
                     </VisualState.Setters>
@@ -275,7 +330,6 @@
                 <VisualState x:Name="Wide">
                     <VisualState.Setters>
                         <Setter TargetName="PanelColumn" Property="Width" Value="340" />
-                        <Setter TargetName="Chart" Property="Grid.ColumnSpan" Value="1" />
                         <Setter TargetName="WidePanel" Property="IsVisible" Value="True" />
                         <Setter TargetName="NarrowPanel" Property="IsVisible" Value="False" />
                     </VisualState.Setters>

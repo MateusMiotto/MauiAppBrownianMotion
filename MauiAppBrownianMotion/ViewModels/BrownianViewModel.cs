@@ -96,7 +96,7 @@ namespace MauiAppBrownianMotion.ViewModels
 
         #region Heavy threshold
         private const int BasePointsPerCore = 375_000;
-        public static int HeavyThresholdPoints => BasePointsPerCore * Environment.ProcessorCount;
+        public static int HeavyThresholdPoints => BasePointsPerCore * (Environment.ProcessorCount - 1);
         #endregion
 
         #region Background windows
@@ -107,7 +107,7 @@ namespace MauiAppBrownianMotion.ViewModels
         public bool IsBackgroundWindow
         {
             get => isBackgroundWindow;
-            internal set
+            set
             {
                 if (SetProperty(ref isBackgroundWindow, value))
                 {
@@ -187,19 +187,38 @@ namespace MauiAppBrownianMotion.ViewModels
         #endregion
 
         #region Downsampling config
-        public const int MaxChartPoints = 2_000;
+        public const int MaxChartPoints = 10_000;
         static double[] Downsample(double[] source, int maxPoints)
         {
+            // Mantém original se já pequeno
             if (source.Length <= maxPoints) return source;
             if (maxPoints < 2) return new[] { source[^1] };
+
+            // Amostragem em passos uniformes com interpolação linear para reduzir aliasing
+            // target[i] representa o valor interpolado na posição fracionária correspondente.
             double[] target = new double[maxPoints];
-            double step = (source.Length - 1.0) / (maxPoints - 1.0);
-            for (int i = 0; i < maxPoints; i++)
+            int lastIndex = source.Length - 1;
+            double scale = lastIndex / (double)(maxPoints - 1); // fator entre índices
+
+            target[0] = source[0];
+            for (int i = 1; i < maxPoints - 1; i++)
             {
-                int idx = (int)Math.Round(i * step);
-                if (idx >= source.Length) idx = source.Length - 1;
-                target[i] = source[idx];
+                double pos = i * scale;          // posição fracionária no array original
+                int idx = (int)pos;              // índice inferior
+                double frac = pos - idx;         // parte fracionária
+                if (idx >= lastIndex)
+                {
+                    target[i] = source[lastIndex];
+                }
+                else
+                {
+                    // Interpolação linear entre idx e idx+1
+                    double v0 = source[idx];
+                    double v1 = source[idx + 1];
+                    target[i] = v0 + (v1 - v0) * frac;
+                }
             }
+            target[^1] = source[^1];
             return target;
         }
         #endregion
@@ -249,7 +268,7 @@ namespace MauiAppBrownianMotion.ViewModels
                 if (!token.IsCancellationRequested)
                     Paths = result;
             }
-            catch (OperationCanceledException){ }
+            catch (OperationCanceledException) { }
             catch (Exception ex)
             {
                 if (!IsBackgroundWindow)
@@ -279,13 +298,17 @@ namespace MauiAppBrownianMotion.ViewModels
                 }
                 return listSeq;
             }
-            var arr = new double[sims][];
+
+            // Pré-aloca lista com capacidade exata e placeholders para evitar cópia extra (antes: array + ToList()).
+            var list = new List<double[]>(sims);
+            for (int i = 0; i < sims; i++) list.Add(Array.Empty<double>()); // placeholders
+
             int maxParallel = Math.Max(1, Environment.ProcessorCount - 1);
             Parallel.For(0, sims, new ParallelOptions { CancellationToken = token, MaxDegreeOfParallelism = maxParallel }, i =>
             {
-                arr[i] = GenerateBromnianMotion(sigmaD, muD, precoInicial, dias, token);
+                list[i] = GenerateBromnianMotion(sigmaD, muD, precoInicial, dias, token);
             });
-            return arr.ToList();
+            return list;
         }
         #endregion
 

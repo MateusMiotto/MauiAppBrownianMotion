@@ -1,6 +1,6 @@
 using Syncfusion.Maui.Toolkit.Charts;
 
-namespace MeuApp.Pages.Controls
+namespace MauiAppBrownianMotion.Views.Controls
 {
     public class LegendExt : ChartLegend
     {
