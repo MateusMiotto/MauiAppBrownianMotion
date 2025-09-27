@@ -31,8 +31,13 @@ namespace MauiAppBrownianMotion.Models
         public float TooltipTopMargin { get; set; } = 20f;
 
         // --- Hover support ---
+        public bool HoverEnabled { get; set; } = true; // permite desativar zoom e tooltip para cenários pesados
         public PointF? HoverPoint { get; private set; }
-        public void SetHover(PointF? p) => HoverPoint = p;
+        public void SetHover(PointF? p)
+        {
+            if (!HoverEnabled) { HoverPoint = null; return; }
+            HoverPoint = p;
+        }
 
         #region Series Styling
         /// <summary>
@@ -217,7 +222,8 @@ namespace MauiAppBrownianMotion.Models
             DrawYLabels(canvas, plot, yTicks, visMin, visMax, leftPad);
             DrawXLabels(canvas, plot, xTicksLocal, xTicksGlobal, visibleCount);
             DrawSeries(canvas, plot, paths, startIndex, endIndex, visibleCount, visMin, visMax);
-            DrawHover(canvas, plot, paths, startIndex, endIndex, visibleCount, visMin, visMax, dirtyRect, baseFont);
+            if (HoverEnabled)
+                DrawHover(canvas, plot, paths, startIndex, endIndex, visibleCount, visMin, visMax, dirtyRect, baseFont);
             DrawTitles(canvas, plot, leftPad);
 
             canvas.RestoreState();

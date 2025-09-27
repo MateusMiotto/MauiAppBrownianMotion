@@ -56,16 +56,26 @@
                 VerticalOptions="Start">
                 <HorizontalStackLayout
                     HorizontalOptions="Center"
-                    Spacing="4"
+                    Spacing="6"
                     VerticalOptions="Center">
                     <Button
                         x:Name="ZoomOutButton"
-                        Padding="0"
+                        Padding="4"
                         Clicked="OnZoomOutClicked"
-                        FontAttributes="Bold"
-                        HeightRequest="10"
-                        Text="-"
-                        WidthRequest="10" />
+                        HeightRequest="32"
+                        WidthRequest="32" />
+                    <Button
+                        x:Name="ZoomResetButton"
+                        Padding="4"
+                        Clicked="OnZoomResetClicked"
+                        HeightRequest="32"
+                        WidthRequest="32" />
+                    <Button
+                        x:Name="ZoomInButton"
+                        Padding="4"
+                        Clicked="OnZoomInClicked"
+                        HeightRequest="32"
+                        WidthRequest="32" />
                     <Label
                         x:Name="ZoomLabel"
                         FontSize="12"
@@ -74,14 +84,6 @@
                         TextColor="White"
                         VerticalTextAlignment="Center"
                         WidthRequest="46" />
-                    <Button
-                        x:Name="ZoomInButton"
-                        Padding="0"
-                        Clicked="OnZoomInClicked"
-                        FontAttributes="Bold"
-                        HeightRequest="10"
-                        Text="+"
-                        WidthRequest="10" />
                 </HorizontalStackLayout>
             </Border>
             <GraphicsView
@@ -167,6 +169,7 @@
                         Text="{Binding TempoDiasInput}">
                         <Entry.Behaviors>
                             <behaviors:NumericEntryBehavior />
+                            <behaviors:IntegerMaxBehavior MaxValue="9999" />
                         </Entry.Behaviors>
                     </Entry>
                     <Label
@@ -182,6 +185,7 @@
                         Text="{Binding NumeroSimulacoesInput}">
                         <Entry.Behaviors>
                             <behaviors:NumericEntryBehavior />
+                            <behaviors:IntegerMaxBehavior MaxValue="9999" />
                         </Entry.Behaviors>
                     </Entry>
 
@@ -267,6 +271,7 @@
                             Text="{Binding TempoDiasInput}">
                             <Entry.Behaviors>
                                 <behaviors:NumericEntryBehavior />
+                                <behaviors:IntegerMaxBehavior MaxValue="9999" />
                             </Entry.Behaviors>
                         </Entry>
                     </VerticalStackLayout>
@@ -278,6 +283,7 @@
                             Text="{Binding NumeroSimulacoesInput}">
                             <Entry.Behaviors>
                                 <behaviors:NumericEntryBehavior />
+                                <behaviors:IntegerMaxBehavior MaxValue="9999" />
                             </Entry.Behaviors>
                         </Entry>
                     </VerticalStackLayout>
