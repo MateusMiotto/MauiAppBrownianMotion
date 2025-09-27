@@ -16,7 +16,10 @@
         <Style x:Key="NumericEntryStyle" TargetType="Entry">
             <Setter Property="Keyboard" Value="Numeric" />
         </Style>
-        <Style x:Key="NarrowEntryStyle" BasedOn="{StaticResource NumericEntryStyle}" TargetType="Entry">
+        <Style
+            x:Key="NarrowEntryStyle"
+            BasedOn="{StaticResource NumericEntryStyle}"
+            TargetType="Entry">
             <Setter Property="FontSize" Value="12" />
         </Style>
         <Style x:Key="FieldContainerVertical" TargetType="VerticalStackLayout">
@@ -53,7 +56,7 @@
                 <Grid
                     ColumnDefinitions="Auto,*"
                     ColumnSpacing="8"
-                    RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                    RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto"
                     RowSpacing="8">
                     <Label
                         Grid.Row="0"
@@ -140,8 +143,18 @@
                         Grid.Column="1"
                         HorizontalOptions="Start"
                         IsToggled="{Binding UsarPeriodicidadeMensal}" />
+                    <HorizontalStackLayout
+                        Grid.Row="6"
+                        Grid.ColumnSpan="2"
+                        Spacing="8">
+                        <ActivityIndicator IsRunning="{Binding IsProcessing}" IsVisible="{Binding IsProcessing}" />
+                        <Label Text="{Binding ProcessingTime, StringFormat='Tempo de Processamento: {0}'}" VerticalTextAlignment="Center" />
+                    </HorizontalStackLayout>
                 </Grid>
-                <Button Command="{Binding GerarSimulacaoCommand}" Text="Gerar simulação" />
+                <HorizontalStackLayout Spacing="8">
+                    <Button Command="{Binding GerarSimulacaoCommand}" Text="Gerar" />
+                    <Button Command="{Binding CancelarCommand}" Text="Cancelar" />
+                </HorizontalStackLayout>
             </VerticalStackLayout>
         </ContentView>
 
@@ -215,12 +228,19 @@
                             </Entry.Behaviors>
                         </Entry>
                     </VerticalStackLayout>
-                    <VerticalStackLayout Style="{StaticResource FieldContainerVertical}" WidthRequest="120">
+                    <VerticalStackLayout Style="{StaticResource FieldContainerVertical}" WidthRequest="140">
                         <Label FontSize="11" Text="Mensal" />
                         <Switch IsToggled="{Binding UsarPeriodicidadeMensal}" />
                     </VerticalStackLayout>
                 </FlexLayout>
-                <Button Command="{Binding GerarSimulacaoCommand}" Text="Gerar simulação" />
+                <HorizontalStackLayout Spacing="8" VerticalOptions="Start">
+                    <ActivityIndicator IsRunning="{Binding IsProcessing}" IsVisible="{Binding IsProcessing}" />
+                    <Label Text="{Binding ProcessingTime, StringFormat='Tempo de Processamento: {0}'}" VerticalTextAlignment="Center" />
+                </HorizontalStackLayout>
+                <HorizontalStackLayout Spacing="8">
+                    <Button Command="{Binding GerarSimulacaoCommand}" Text="Gerar" />
+                    <Button Command="{Binding CancelarCommand}" Text="Cancelar" />
+                </HorizontalStackLayout>
             </VerticalStackLayout>
         </ContentView>
 
