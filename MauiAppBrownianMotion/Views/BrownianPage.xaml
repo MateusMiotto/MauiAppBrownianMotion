@@ -3,9 +3,30 @@
     x:Class="MauiAppBrownianMotion.Pages.BrownianPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:behaviors="clr-namespace:MauiAppBrownianMotion.Behaviors"
     xmlns:vm="clr-namespace:MauiAppBrownianMotion.ViewModels"
     Title="Brownian Motion"
     x:DataType="vm:BrownianViewModel">
+
+    <ContentPage.Resources>
+        <Style x:Key="InputLabelStyle" TargetType="Label">
+            <Setter Property="VerticalTextAlignment" Value="Center" />
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+        <Style x:Key="NumericEntryStyle" TargetType="Entry">
+            <Setter Property="Keyboard" Value="Numeric" />
+        </Style>
+        <Style
+            x:Key="NarrowEntryStyle"
+            BasedOn="{StaticResource NumericEntryStyle}"
+            TargetType="Entry">
+            <Setter Property="FontSize" Value="12" />
+        </Style>
+        <Style x:Key="FieldContainerVertical" TargetType="VerticalStackLayout">
+            <Setter Property="Spacing" Value="4" />
+            <Setter Property="Margin" Value="0,0,24,12" />
+        </Style>
+    </ContentPage.Resources>
 
     <Grid x:Name="LayoutGrid">
         <Grid.RowDefinitions>
@@ -37,71 +58,83 @@
                     ColumnSpacing="8"
                     RowDefinitions="Auto,Auto,Auto,Auto,Auto"
                     RowSpacing="8">
-                    <!--  Preço inicial  -->
                     <Label
                         Grid.Row="0"
                         Grid.Column="0"
-                        Text="Preço inicial:"
-                        VerticalTextAlignment="Center" />
+                        Style="{StaticResource InputLabelStyle}"
+                        Text="Preço inicial:" />
                     <Entry
                         x:Name="PrecoInicialEntry"
                         Grid.Row="0"
                         Grid.Column="1"
-                        Keyboard="Numeric"
-                        Text="{Binding PrecoInicial}" />
-                    <!--  Volatilidade  -->
+                        Style="{StaticResource NumericEntryStyle}"
+                        Text="{Binding PrecoInicialInput}">
+                        <Entry.Behaviors>
+                            <behaviors:NumericEntryBehavior />
+                        </Entry.Behaviors>
+                    </Entry>
                     <Label
                         Grid.Row="1"
                         Grid.Column="0"
-                        Text="Volatilidade (% a.a.):"
-                        VerticalTextAlignment="Center" />
+                        Style="{StaticResource InputLabelStyle}"
+                        Text="Volatilidade (% a.a.):" />
                     <Entry
                         x:Name="VolatilidadeEntry"
                         Grid.Row="1"
                         Grid.Column="1"
-                        Keyboard="Numeric"
-                        Text="{Binding VolatilidadePercent}" />
-                    <!--  Retorno  -->
+                        Style="{StaticResource NumericEntryStyle}"
+                        Text="{Binding VolatilidadePercentInput}">
+                        <Entry.Behaviors>
+                            <behaviors:NumericEntryBehavior />
+                        </Entry.Behaviors>
+                    </Entry>
                     <Label
                         Grid.Row="2"
                         Grid.Column="0"
-                        Text="Retorno (% a.a.):"
-                        VerticalTextAlignment="Center" />
+                        Style="{StaticResource InputLabelStyle}"
+                        Text="Retorno (% a.a.):" />
                     <Entry
                         x:Name="RetornoEntry"
                         Grid.Row="2"
                         Grid.Column="1"
-                        Keyboard="Numeric"
-                        Text="{Binding RetornoPercent}" />
-                    <!--  Tempo dias  -->
+                        Style="{StaticResource NumericEntryStyle}"
+                        Text="{Binding RetornoPercentInput}">
+                        <Entry.Behaviors>
+                            <behaviors:NumericEntryBehavior />
+                        </Entry.Behaviors>
+                    </Entry>
                     <Label
                         Grid.Row="3"
                         Grid.Column="0"
-                        Text="Tempo (dias):"
-                        VerticalTextAlignment="Center" />
+                        Style="{StaticResource InputLabelStyle}"
+                        Text="Tempo (dias):" />
                     <Entry
                         x:Name="TempoDiasEntry"
                         Grid.Row="3"
                         Grid.Column="1"
-                        Keyboard="Numeric"
-                        Text="{Binding TempoDias}" />
-                    <!--  Nº simulações  -->
+                        Style="{StaticResource NumericEntryStyle}"
+                        Text="{Binding TempoDiasInput}">
+                        <Entry.Behaviors>
+                            <behaviors:NumericEntryBehavior />
+                        </Entry.Behaviors>
+                    </Entry>
                     <Label
                         Grid.Row="4"
                         Grid.Column="0"
-                        Text="Nº simulações:"
-                        VerticalTextAlignment="Center" />
+                        Style="{StaticResource InputLabelStyle}"
+                        Text="Nº simulações:" />
                     <Entry
                         x:Name="NumeroSimulacoesEntry"
                         Grid.Row="4"
                         Grid.Column="1"
-                        Keyboard="Numeric"
-                        Text="{Binding NumeroSimulacoes}" />
+                        Style="{StaticResource NumericEntryStyle}"
+                        Text="{Binding NumeroSimulacoesInput}">
+                        <Entry.Behaviors>
+                            <behaviors:NumericEntryBehavior />
+                        </Entry.Behaviors>
+                    </Entry>
                 </Grid>
-                <Button
-                    x:DataType="vm:BrownianViewModel"
-                    Command="{Binding GerarSimulacaoCommand}"
-                    Text="Gerar simulação" />
+                <Button Command="{Binding GerarSimulacaoCommand}" Text="Gerar simulação" />
             </VerticalStackLayout>
         </ContentView>
 
@@ -120,67 +153,69 @@
                     Direction="Row"
                     JustifyContent="Start"
                     Wrap="Wrap">
-                    <VerticalStackLayout
-                        Margin="0,0,24,12"
-                        Spacing="4"
-                        WidthRequest="160">
-                        <Label Text="Preço inicial" />
+                    <VerticalStackLayout Style="{StaticResource FieldContainerVertical}" WidthRequest="140">
+                        <Label FontSize="11" Text="Preço" />
                         <Entry
                             x:Name="PrecoInicialEntryN"
-                            Keyboard="Numeric"
-                            Text="{Binding PrecoInicial}" />
+                            Style="{StaticResource NarrowEntryStyle}"
+                            Text="{Binding PrecoInicialInput}">
+                            <Entry.Behaviors>
+                                <behaviors:NumericEntryBehavior />
+                            </Entry.Behaviors>
+                        </Entry>
                     </VerticalStackLayout>
-                    <VerticalStackLayout
-                        Margin="0,0,24,12"
-                        Spacing="4"
-                        WidthRequest="180">
-                        <Label Text="Volatilidade (% a.a.)" />
+                    <VerticalStackLayout Style="{StaticResource FieldContainerVertical}" WidthRequest="160">
+                        <Label FontSize="11" Text="Vol (% a.a.)" />
                         <Entry
                             x:Name="VolatilidadeEntryN"
-                            Keyboard="Numeric"
-                            Text="{Binding VolatilidadePercent}" />
+                            Style="{StaticResource NarrowEntryStyle}"
+                            Text="{Binding VolatilidadePercentInput}">
+                            <Entry.Behaviors>
+                                <behaviors:NumericEntryBehavior />
+                            </Entry.Behaviors>
+                        </Entry>
                     </VerticalStackLayout>
-                    <VerticalStackLayout
-                        Margin="0,0,24,12"
-                        Spacing="4"
-                        WidthRequest="160">
-                        <Label Text="Retorno (% a.a.)" />
+                    <VerticalStackLayout Style="{StaticResource FieldContainerVertical}" WidthRequest="150">
+                        <Label FontSize="11" Text="Ret (% a.a.)" />
                         <Entry
                             x:Name="RetornoEntryN"
-                            Keyboard="Numeric"
-                            Text="{Binding RetornoPercent}" />
+                            Style="{StaticResource NarrowEntryStyle}"
+                            Text="{Binding RetornoPercentInput}">
+                            <Entry.Behaviors>
+                                <behaviors:NumericEntryBehavior />
+                            </Entry.Behaviors>
+                        </Entry>
                     </VerticalStackLayout>
-                    <VerticalStackLayout
-                        Margin="0,0,24,12"
-                        Spacing="4"
-                        WidthRequest="140">
-                        <Label Text="Tempo (dias)" />
+                    <VerticalStackLayout Style="{StaticResource FieldContainerVertical}" WidthRequest="120">
+                        <Label FontSize="11" Text="Dias" />
                         <Entry
                             x:Name="TempoDiasEntryN"
-                            Keyboard="Numeric"
-                            Text="{Binding TempoDias}" />
+                            Style="{StaticResource NarrowEntryStyle}"
+                            Text="{Binding TempoDiasInput}">
+                            <Entry.Behaviors>
+                                <behaviors:NumericEntryBehavior />
+                            </Entry.Behaviors>
+                        </Entry>
                     </VerticalStackLayout>
-                    <VerticalStackLayout
-                        Margin="0,0,24,12"
-                        Spacing="4"
-                        WidthRequest="150">
-                        <Label Text="Nº simulações" />
+                    <VerticalStackLayout Style="{StaticResource FieldContainerVertical}" WidthRequest="140">
+                        <Label FontSize="11" Text="Simulações" />
                         <Entry
                             x:Name="NumeroSimulacoesEntryN"
-                            Keyboard="Numeric"
-                            Text="{Binding NumeroSimulacoes}" />
+                            Style="{StaticResource NarrowEntryStyle}"
+                            Text="{Binding NumeroSimulacoesInput}">
+                            <Entry.Behaviors>
+                                <behaviors:NumericEntryBehavior />
+                            </Entry.Behaviors>
+                        </Entry>
                     </VerticalStackLayout>
                 </FlexLayout>
-                <Button
-                    x:DataType="vm:BrownianViewModel"
-                    Command="{Binding GerarSimulacaoCommand}"
-                    Text="Gerar simulação" />
+                <Button Command="{Binding GerarSimulacaoCommand}" Text="Gerar simulação" />
             </VerticalStackLayout>
         </ContentView>
 
-        <!--  Visual States (alternados no code-behind)  -->
+        <!--  Visual States  -->
         <VisualStateManager.VisualStateGroups>
-            <VisualStateGroup x:Name="LayoutStates">
+            <VisualStateGroup>
                 <VisualState x:Name="Narrow">
                     <VisualState.Setters>
                         <Setter TargetName="PanelColumn" Property="Width" Value="0" />
