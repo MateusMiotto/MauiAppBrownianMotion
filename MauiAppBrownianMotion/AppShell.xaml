@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Shell
+    x:Class="MauiAppBrownianMotion.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:MauiAppBrownianMotion"
+    xmlns:pages="clr-namespace:MauiAppBrownianMotion.Pages"
+    xmlns:sf="clr-namespace:Syncfusion.Maui.Toolkit.SegmentedControl;assembly=Syncfusion.Maui.Toolkit"
+    Title="Brownian Motion"
+    Shell.FlyoutBehavior="Flyout">
+
+    <ShellContent
+        Title="MainPage"
+        ContentTemplate="{DataTemplate pages:MainPage}"
+        Route="mainpage" />
+
+    <Shell.FlyoutFooter>
+        <Grid Padding="15">
+            <sf:SfSegmentedControl
+                x:Name="ThemeSegmentedControl"
+                HorizontalOptions="Center"
+                SegmentHeight="40"
+                SegmentWidth="40"
+                SelectionChanged="SfSegmentedControl_SelectionChanged"
+                VerticalOptions="Center">
+                <sf:SfSegmentedControl.ItemsSource>
+                    <x:Array Type="{x:Type sf:SfSegmentItem}">
+                        <sf:SfSegmentItem ImageSource="{StaticResource IconLight}" SelectedSegmentBackground="{AppThemeBinding Light={StaticResource Secondary}, Dark={StaticResource Primary}}" />
+                        <sf:SfSegmentItem ImageSource="{StaticResource IconDark}" SelectedSegmentBackground="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}" />
+                    </x:Array>
+                </sf:SfSegmentedControl.ItemsSource>
+            </sf:SfSegmentedControl>
+        </Grid>
+    </Shell.FlyoutFooter>
+
+</Shell>
