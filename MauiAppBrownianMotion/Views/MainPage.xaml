@@ -10,7 +10,41 @@
 
 
     <Grid>
-        <ScrollView />
+        <Grid ColumnDefinitions="*,320" RowDefinitions="*">
+            <!--  Gráfico  -->
+            <GraphicsView
+                x:Name="Chart"
+                Grid.RowSpan="2"
+                Drawable="{Binding Source={x:Reference Chart}, Path=BindingContext, Mode=OneWay}" />
+
+            <!--  Painel  -->
+            <VerticalStackLayout
+                Grid.Column="1"
+                Padding="16"
+                Spacing="8">
+                <Entry
+                    Keyboard="Numeric"
+                    Placeholder="Preço inicial"
+                    Text="{Binding PrecoInicial}" />
+                <Entry
+                    Keyboard="Numeric"
+                    Placeholder="Volatilidade (%) a.a."
+                    Text="{Binding VolatilidadePercent}" />
+                <Entry
+                    Keyboard="Numeric"
+                    Placeholder="Retorno (%) a.a."
+                    Text="{Binding RetornoPercent}" />
+                <Entry
+                    Keyboard="Numeric"
+                    Placeholder="Tempo (dias)"
+                    Text="{Binding TempoDias}" />
+                <Entry
+                    Keyboard="Numeric"
+                    Placeholder="Nº simulações"
+                    Text="{Binding NumeroSimulacoes}" />
+                <Button Command="{Binding GerarCommand}" Text="Gerar simulação" />
+            </VerticalStackLayout>
+        </Grid>
 
 
     </Grid>
