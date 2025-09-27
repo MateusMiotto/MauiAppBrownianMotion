@@ -56,6 +56,8 @@ namespace MauiAppBrownianMotion.Pages
             // Adapta layout responsivo 
             SizeChanged += BrownianPage_SizeChanged;
 
+            UpdateZoomLabel();
+
 #if WINDOWS
             // Anexa eventos nativos do Windows para suporte a zoom/pan via mouse + hover
             Chart.HandlerChanged += (_, _) => AttachWindowsEvents();
@@ -130,6 +132,7 @@ namespace MauiAppBrownianMotion.Pages
             drawable.XZoom = newZoom;
             drawable.XPan = Math.Max(0, Math.Min(1 - 1 / drawable.XZoom, newPan));
             Chart.Invalidate();
+            UpdateZoomLabel();
         }
 
         void ApplyPanDelta(double deltaPixels, double widthPixels)
@@ -151,6 +154,30 @@ namespace MauiAppBrownianMotion.Pages
             drawable.XZoom = 1;
             drawable.XPan = 0;
             Chart.Invalidate();
+            UpdateZoomLabel();
+        }
+
+        void OnZoomInClicked(object? sender, EventArgs e)
+        {
+            initialZoom = drawable.XZoom;
+            ApplyZoom(1.25, 0.5); // zoom central
+        }
+
+        void OnZoomOutClicked(object? sender, EventArgs e)
+        {
+            initialZoom = drawable.XZoom;
+            ApplyZoom(0.8, 0.5); // zoom out central
+        }
+
+        void UpdateZoomLabel()
+        {
+            var lbl = this.FindByName<Label>("ZoomLabel");
+            if (lbl != null)
+            {
+                double z = drawable.XZoom;
+                if (z < 1.0001) z = 1; // mostrar 1x quando resetado
+                lbl.Text = z >= 10 ? $"{z:0}x" : z >= 2 ? $"{z:0.#}x" : $"{z:0.##}x";
+            }
         }
 
 #if WINDOWS
@@ -183,6 +210,7 @@ namespace MauiAppBrownianMotion.Pages
             initialZoom = drawable.XZoom; // base atual
             double focus = Math.Clamp(pt.Position.X / Chart.Width, 0, 1);
             ApplyZoom(zoomFactor, focus);
+            UpdateZoomLabel();
             e.Handled = true;
         }
 
