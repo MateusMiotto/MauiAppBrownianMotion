@@ -130,8 +130,9 @@ namespace MauiAppBrownianMotion.Pages
             double newPan = focusGlobal - focusXFraction * newVisibleFraction;
 
             drawable.XZoom = newZoom;
-            drawable.XPan = Math.Max(0, Math.Min(1 - 1 / drawable.XZoom, newPan));
-            Chart.Invalidate();
+            drawable.XPan = drawable.XZoom <= 1
+                          ? 0
+                          : Math.Clamp(newPan, 0, 1); Chart.Invalidate();
             UpdateZoomLabel();
         }
 
@@ -142,10 +143,7 @@ namespace MauiAppBrownianMotion.Pages
             double visibleFraction = 1.0 / drawable.XZoom;
             double fracDelta = -deltaPixels / widthPixels * visibleFraction; // sinal invertido
             double newPan = drawable.XPan + fracDelta;
-            double maxPan = 1 - visibleFraction;
-            if (newPan < 0) newPan = 0;
-            if (newPan > maxPan) newPan = maxPan;
-            drawable.XPan = newPan;
+            drawable.XPan = Math.Clamp(newPan, 0, 1);
             Chart.Invalidate();
         }
 
