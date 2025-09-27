@@ -31,7 +31,7 @@
         </Style>
     </ContentPage.Resources>
 
-    <Grid x:Name="LayoutGrid">
+    <Grid x:Name="LayoutGrid" Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
@@ -43,6 +43,7 @@
 
         <!--  Gráfico + Overlay de Zoom  -->
         <Grid
+            x:Name="ChartHost"
             Grid.Row="0"
             Grid.Column="0"
             RowDefinitions="auto,*">
@@ -112,114 +113,116 @@
             Grid.Column="1"
             Padding="16,16,16,24"
             IsVisible="True">
-            <VerticalStackLayout Spacing="12">
-                <Grid
-                    ColumnDefinitions="Auto,*"
-                    ColumnSpacing="8"
-                    RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto"
-                    RowSpacing="8">
-                    <Label
-                        Grid.Row="0"
-                        Grid.Column="0"
-                        Style="{StaticResource InputLabelStyle}"
-                        Text="Preço inicial:" />
-                    <Entry
-                        x:Name="PrecoInicialEntry"
-                        Grid.Row="0"
-                        Grid.Column="1"
-                        Style="{StaticResource NumericEntryStyle}"
-                        Text="{Binding PrecoInicialInput}">
-                        <Entry.Behaviors>
-                            <behaviors:NumericEntryBehavior />
-                        </Entry.Behaviors>
-                    </Entry>
-                    <Label
-                        Grid.Row="1"
-                        Grid.Column="0"
-                        Style="{StaticResource InputLabelStyle}"
-                        Text="Volatilidade (%):" />
-                    <Entry
-                        x:Name="VolatilidadeEntry"
-                        Grid.Row="1"
-                        Grid.Column="1"
-                        Style="{StaticResource NumericEntryStyle}"
-                        Text="{Binding VolatilidadePercentInput}">
-                        <Entry.Behaviors>
-                            <behaviors:NumericEntryBehavior />
-                        </Entry.Behaviors>
-                    </Entry>
-                    <Label
-                        Grid.Row="2"
-                        Grid.Column="0"
-                        Style="{StaticResource InputLabelStyle}"
-                        Text="Retorno (%):" />
-                    <Entry
-                        x:Name="RetornoEntry"
-                        Grid.Row="2"
-                        Grid.Column="1"
-                        Style="{StaticResource NumericEntryStyle}"
-                        Text="{Binding RetornoPercentInput}">
-                        <Entry.Behaviors>
-                            <behaviors:NumericEntryBehavior AllowNegative="True" />
-                        </Entry.Behaviors>
-                    </Entry>
-                    <Label
-                        Grid.Row="3"
-                        Grid.Column="0"
-                        Style="{StaticResource InputLabelStyle}"
-                        Text="Tempo (dias):" />
-                    <Entry
-                        x:Name="TempoDiasEntry"
-                        Grid.Row="3"
-                        Grid.Column="1"
-                        Style="{StaticResource NumericEntryStyle}"
-                        Text="{Binding TempoDiasInput}">
-                        <Entry.Behaviors>
-                            <behaviors:NumericEntryBehavior />
-                            <behaviors:IntegerMaxBehavior MaxValue="9999" />
-                        </Entry.Behaviors>
-                    </Entry>
-                    <Label
-                        Grid.Row="4"
-                        Grid.Column="0"
-                        Style="{StaticResource InputLabelStyle}"
-                        Text="Nº simulações:" />
-                    <Entry
-                        x:Name="NumeroSimulacoesEntry"
-                        Grid.Row="4"
-                        Grid.Column="1"
-                        Style="{StaticResource NumericEntryStyle}"
-                        Text="{Binding NumeroSimulacoesInput}">
-                        <Entry.Behaviors>
-                            <behaviors:NumericEntryBehavior />
-                            <behaviors:IntegerMaxBehavior MaxValue="9999" />
-                        </Entry.Behaviors>
-                    </Entry>
-
-                    <HorizontalStackLayout
-                        Grid.Row="6"
-                        Grid.ColumnSpan="2"
-                        Spacing="8">
-                        <ActivityIndicator IsRunning="{Binding IsProcessing}" IsVisible="{Binding IsProcessing}" />
+            <ScrollView>
+                <VerticalStackLayout Spacing="12">
+                    <Grid
+                        ColumnDefinitions="Auto,*"
+                        ColumnSpacing="8"
+                        RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                        RowSpacing="8">
                         <Label
-                            FontSize="11"
-                            Text="{Binding ProcessingTime, StringFormat='Tempo de Processamento: {0}'}"
-                            VerticalTextAlignment="Center" />
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            Style="{StaticResource InputLabelStyle}"
+                            Text="Preço inicial:" />
+                        <Entry
+                            x:Name="PrecoInicialEntry"
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Style="{StaticResource NumericEntryStyle}"
+                            Text="{Binding PrecoInicialInput}">
+                            <Entry.Behaviors>
+                                <behaviors:NumericEntryBehavior />
+                            </Entry.Behaviors>
+                        </Entry>
+                        <Label
+                            Grid.Row="1"
+                            Grid.Column="0"
+                            Style="{StaticResource InputLabelStyle}"
+                            Text="Volatilidade (%):" />
+                        <Entry
+                            x:Name="VolatilidadeEntry"
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Style="{StaticResource NumericEntryStyle}"
+                            Text="{Binding VolatilidadePercentInput}">
+                            <Entry.Behaviors>
+                                <behaviors:NumericEntryBehavior />
+                            </Entry.Behaviors>
+                        </Entry>
+                        <Label
+                            Grid.Row="2"
+                            Grid.Column="0"
+                            Style="{StaticResource InputLabelStyle}"
+                            Text="Retorno (%):" />
+                        <Entry
+                            x:Name="RetornoEntry"
+                            Grid.Row="2"
+                            Grid.Column="1"
+                            Style="{StaticResource NumericEntryStyle}"
+                            Text="{Binding RetornoPercentInput}">
+                            <Entry.Behaviors>
+                                <behaviors:NumericEntryBehavior AllowNegative="True" />
+                            </Entry.Behaviors>
+                        </Entry>
+                        <Label
+                            Grid.Row="3"
+                            Grid.Column="0"
+                            Style="{StaticResource InputLabelStyle}"
+                            Text="Tempo (dias):" />
+                        <Entry
+                            x:Name="TempoDiasEntry"
+                            Grid.Row="3"
+                            Grid.Column="1"
+                            Style="{StaticResource NumericEntryStyle}"
+                            Text="{Binding TempoDiasInput}">
+                            <Entry.Behaviors>
+                                <behaviors:NumericEntryBehavior />
+                                <behaviors:IntegerMaxBehavior MaxValue="9999" />
+                            </Entry.Behaviors>
+                        </Entry>
+                        <Label
+                            Grid.Row="4"
+                            Grid.Column="0"
+                            Style="{StaticResource InputLabelStyle}"
+                            Text="Nº simulações:" />
+                        <Entry
+                            x:Name="NumeroSimulacoesEntry"
+                            Grid.Row="4"
+                            Grid.Column="1"
+                            Style="{StaticResource NumericEntryStyle}"
+                            Text="{Binding NumeroSimulacoesInput}">
+                            <Entry.Behaviors>
+                                <behaviors:NumericEntryBehavior />
+                                <behaviors:IntegerMaxBehavior MaxValue="9999" />
+                            </Entry.Behaviors>
+                        </Entry>
+
+                        <HorizontalStackLayout
+                            Grid.Row="6"
+                            Grid.ColumnSpan="2"
+                            Spacing="8">
+                            <ActivityIndicator IsRunning="{Binding IsProcessing}" IsVisible="{Binding IsProcessing}" />
+                            <Label
+                                FontSize="11"
+                                Text="{Binding ProcessingTime, StringFormat='Tempo de Processamento: {0}'}"
+                                VerticalTextAlignment="Center" />
+                        </HorizontalStackLayout>
+                    </Grid>
+                    <HorizontalStackLayout Spacing="8">
+                        <Button
+                            Command="{Binding GerarSimulacaoCommand}"
+                            IsEnabled="{Binding CanGerarSimulacao}"
+                            IsVisible="{Binding MostrarBotaoGerar}"
+                            Text="Gerar" />
+                        <Button
+                            Background="Red"
+                            Command="{Binding CancelarCommand}"
+                            IsEnabled="{Binding CanCancelar}"
+                            Text="Cancelar" />
                     </HorizontalStackLayout>
-                </Grid>
-                <HorizontalStackLayout Spacing="8">
-                    <Button
-                        Command="{Binding GerarSimulacaoCommand}"
-                        IsEnabled="{Binding CanGerarSimulacao}"
-                        IsVisible="{Binding MostrarBotaoGerar}"
-                        Text="Gerar" />
-                    <Button
-                        Background="Red"
-                        Command="{Binding CancelarCommand}"
-                        IsEnabled="{Binding CanCancelar}"
-                        Text="Cancelar" />
-                </HorizontalStackLayout>
-            </VerticalStackLayout>
+                </VerticalStackLayout>
+            </ScrollView>
         </ContentView>
 
         <!--  Painel (modo Narrow) - abaixo do gráfico  -->
@@ -325,6 +328,7 @@
                         <Setter TargetName="PanelColumn" Property="Width" Value="0" />
                         <Setter TargetName="WidePanel" Property="IsVisible" Value="False" />
                         <Setter TargetName="NarrowPanel" Property="IsVisible" Value="True" />
+                        <Setter TargetName="ChartHost" Property="Grid.ColumnSpan" Value="2" />
                     </VisualState.Setters>
                 </VisualState>
                 <VisualState x:Name="Wide">
@@ -332,6 +336,7 @@
                         <Setter TargetName="PanelColumn" Property="Width" Value="340" />
                         <Setter TargetName="WidePanel" Property="IsVisible" Value="True" />
                         <Setter TargetName="NarrowPanel" Property="IsVisible" Value="False" />
+                        <Setter TargetName="ChartHost" Property="Grid.ColumnSpan" Value="1" />
                     </VisualState.Setters>
                 </VisualState>
             </VisualStateGroup>
