@@ -35,46 +35,10 @@ namespace MauiAppBrownianMotion.Pages
             SizeChanged += BrownianPage_SizeChanged;
             vm.PropertyChanged += Vm_PropertyChanged; // observar IsBackgroundWindow
             ApplyInteractionMode();
-            ConfigureZoomButtons();
             UpdateZoomLabel();
 #if WINDOWS
             Chart.HandlerChanged += (_, _) => AttachWindowsEvents();
 #endif
-        }
-
-        void ConfigureZoomButtons()
-        {
-            // Usa alguns ícones do FluentUI (fallback para texto se classe não estiver completa em runtime)
-            try
-            {
-                var fontFamily = FluentUI.FontFamily; // assumindo classe gerada
-                if (ZoomOutButton != null)
-                {
-                    ZoomOutButton.Text = FluentUI.subtract_20_regular;
-                    ZoomOutButton.FontFamily = fontFamily;
-                    ZoomOutButton.FontSize = 18;
-                }
-                if (ZoomInButton != null)
-                {
-                    ZoomInButton.Text = FluentUI.add_20_regular;
-                    ZoomInButton.FontFamily = fontFamily;
-                    ZoomInButton.FontSize = 18;
-                }
-                if (ZoomResetButton != null)
-                {
-                    // ícone de reset
-                    ZoomResetButton.Text = FluentUI.arrow_reset_20_regular;
-                    ZoomResetButton.FontFamily = fontFamily;
-                    ZoomResetButton.FontSize = 18;
-                }
-            }
-            catch
-            {
-                // fallback simples
-                if (ZoomOutButton != null && string.IsNullOrWhiteSpace(ZoomOutButton.Text)) ZoomOutButton.Text = "-";
-                if (ZoomInButton != null && string.IsNullOrWhiteSpace(ZoomInButton.Text)) ZoomInButton.Text = "+";
-                if (ZoomResetButton != null && string.IsNullOrWhiteSpace(ZoomResetButton.Text)) ZoomResetButton.Text = "R";
-            }
         }
 
         void Vm_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -88,15 +52,23 @@ namespace MauiAppBrownianMotion.Pages
         void ApplyInteractionMode()
         {
             bool disableInteractions = ViewModel.IsBackgroundWindow; // janela pesada
+
+            // Desabilita hover pesado
             drawable.HoverEnabled = !disableInteractions;
+
+            // Esconde overlay de zoom
             var overlay = this.FindByName<Border>("ZoomOverlay");
             if (overlay != null) overlay.IsVisible = !disableInteractions;
+
+            // Reseta zoom/pan se desabilitando
             if (disableInteractions)
             {
                 drawable.XZoom = 1;
                 drawable.XPan = 0;
                 drawable.SetHover(null);
             }
+
+            // Gestos XAML continuarão anexados, mas saem precocemente se desabilitado
         }
 
         private void BrownianPage_SizeChanged(object? sender, EventArgs e)
@@ -110,7 +82,7 @@ namespace MauiAppBrownianMotion.Pages
         // Pinch (zoom horizontal) - Touch
         void OnChartPinch(object? sender, PinchGestureUpdatedEventArgs e)
         {
-            if (ViewModel.IsBackgroundWindow) return;
+            if (ViewModel.IsBackgroundWindow) return; // desativado
             if (e.Status == GestureStatus.Started)
             {
                 pinchInProgress = true;
@@ -129,7 +101,7 @@ namespace MauiAppBrownianMotion.Pages
         // Pan (deslocamento horizontal) - Touch
         void OnChartPan(object? sender, PanUpdatedEventArgs e)
         {
-            if (ViewModel.IsBackgroundWindow) return;
+            if (ViewModel.IsBackgroundWindow) return; // desativado
             if (pinchInProgress) return;
             switch (e.StatusType)
             {
@@ -145,7 +117,7 @@ namespace MauiAppBrownianMotion.Pages
 
         void OnChartDoubleTap(object? sender, TappedEventArgs e)
         {
-            if (ViewModel.IsBackgroundWindow) return;
+            if (ViewModel.IsBackgroundWindow) return; // desativado
             ResetZoom();
         }
 
@@ -187,14 +159,14 @@ namespace MauiAppBrownianMotion.Pages
 
         void OnZoomInClicked(object? sender, EventArgs e)
         {
-            if (ViewModel.IsBackgroundWindow) return;
+            if (ViewModel.IsBackgroundWindow) return; // desativado
             initialZoom = drawable.XZoom;
             ApplyZoom(1.25, 0.5);
         }
 
         void OnZoomOutClicked(object? sender, EventArgs e)
         {
-            if (ViewModel.IsBackgroundWindow) return;
+            if (ViewModel.IsBackgroundWindow) return; // desativado
             initialZoom = drawable.XZoom;
             ApplyZoom(0.8, 0.5);
         }
@@ -236,7 +208,7 @@ namespace MauiAppBrownianMotion.Pages
 
         void OnPointerWheelChanged(object sender, PointerRoutedEventArgs e)
         {
-            if (ViewModel.IsBackgroundWindow) return;
+            if (ViewModel.IsBackgroundWindow) return; // desativado
             if (Chart.Width <= 0) return;
             var pt = e.GetCurrentPoint((Microsoft.UI.Xaml.UIElement)sender);
             int delta = pt.Properties.MouseWheelDelta;

@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:behaviors="clr-namespace:MauiAppBrownianMotion.Behaviors"
+    xmlns:f="clr-namespace:Fonts"
     xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
     xmlns:vm="clr-namespace:MauiAppBrownianMotion.ViewModels"
     Title="Brownian Motion"
@@ -62,19 +63,25 @@
                         x:Name="ZoomOutButton"
                         Padding="4"
                         Clicked="OnZoomOutClicked"
+                        FontFamily="{x:Static f:FluentUI.FontFamily}"
                         HeightRequest="32"
+                        Text="{x:Static f:FluentUI.zoom_out_24_regular}"
                         WidthRequest="32" />
                     <Button
                         x:Name="ZoomResetButton"
                         Padding="4"
                         Clicked="OnZoomResetClicked"
+                        FontFamily="{x:Static f:FluentUI.FontFamily}"
                         HeightRequest="32"
+                        Text="{x:Static f:FluentUI.arrow_reset_24_regular}"
                         WidthRequest="32" />
                     <Button
                         x:Name="ZoomInButton"
                         Padding="4"
                         Clicked="OnZoomInClicked"
+                        FontFamily="{x:Static f:FluentUI.FontFamily}"
                         HeightRequest="32"
+                        Text="{x:Static f:FluentUI.zoom_in_24_regular}"
                         WidthRequest="32" />
                     <Label
                         x:Name="ZoomLabel"
