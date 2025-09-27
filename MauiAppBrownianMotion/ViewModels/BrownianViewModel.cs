@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using System.Globalization;
 using System.Diagnostics;
 using System.Threading;
+using System.Linq;
 
 namespace MauiAppBrownianMotion.ViewModels
 {
@@ -121,6 +122,12 @@ namespace MauiAppBrownianMotion.ViewModels
         public static int HeavyThresholdPoints => BasePointsPerCore * Environment.ProcessorCount;
         #endregion
 
+        #region Contador de janelas em segundo plano
+        static int backgroundWindowSequence;
+        static int NextBackgroundSequence() => Interlocked.Increment(ref backgroundWindowSequence);
+        public bool IsBackgroundWindow { get; internal set; }
+        #endregion
+
         #region Commands (Gerar / Cancelar)
         public bool CanGerarSimulacao => !IsProcessing && ValidateInputs(false, out _);
         public bool CanCancelar => IsProcessing;
@@ -138,10 +145,7 @@ namespace MauiAppBrownianMotion.ViewModels
                     return;
                 }
 
-                if (!await ValidateHeavy())
-                {
-                    return;
-                }
+                if (!await ValidateHeavy()) return;
 
                 await RunSimulationAsync(heavy: false);
             }
@@ -173,6 +177,10 @@ namespace MauiAppBrownianMotion.ViewModels
                 vm2.TempoDiasInput = TempoDiasInput;
                 vm2.NumeroSimulacoesInput = NumeroSimulacoesInput;
                 vm2.UsarPeriodicidadeMensal = UsarPeriodicidadeMensal;
+                vm2.IsBackgroundWindow = true;
+
+                int seq = NextBackgroundSequence();
+                newPage.Title = $"Solicitação de Execução em Segundo plano #{seq}";
 
                 Application.Current!.OpenWindow(new Window(newPage));
 
@@ -180,13 +188,20 @@ namespace MauiAppBrownianMotion.ViewModels
                 _ = vm2.RunSimulationAsync(heavy: true);
                 return false; // não processa na janela atual
             }
-
             return true;
         }
 
         void Cancelar()
         {
             simulationCts?.Cancel();
+            if (IsBackgroundWindow)
+            {
+                var win = Application.Current?.Windows.FirstOrDefault(w => w.Page?.BindingContext == this);
+                if (win != null)
+                {
+                    Application.Current?.CloseWindow(win);
+                }
+            }
         }
         #endregion
 
