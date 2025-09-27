@@ -200,44 +200,6 @@ namespace MauiAppBrownianMotion.Models
             }
 
             // Hover marker + tooltip
-            //if (HoverPoint.HasValue)
-            //{
-            //    var hp = HoverPoint.Value;
-            //    if (hp.X >= plot.Left && hp.X <= plot.Right && hp.Y >= plot.Top && hp.Y <= plot.Bottom && visibleCount > 0)
-            //    {
-            //        double tLocal = (hp.X - plot.Left) / plot.Width;
-            //        tLocal = Math.Clamp(tLocal, 0.0, 1.0);
-            //        int localIdx = (int)Math.Round(tLocal * (visibleCount - 1));
-            //        localIdx = Math.Clamp(localIdx, 0, visibleCount - 1);
-            //        int globalIdx = startIndex + localIdx;
-
-            //        float hoverX = LocalIndexToX(localIdx, visibleCount, plot);
-
-            //        // vertical line
-            //        canvas.StrokeColor = Colors.Black.WithAlpha(0.4f);
-            //        canvas.StrokeSize = 1;
-            //        canvas.DrawLine(AlignPx(hoverX), plot.Top, AlignPx(hoverX), plot.Bottom);
-
-            //        // Compose single-line tooltip text
-            //        string values = string.Join(", ", paths.Select((s, i) =>
-            //            globalIdx < s.Length ? $"S{i + 1}={s[globalIdx]:0.###}" : $"S{i + 1}=-"));
-            //        string tip = $"i {globalIdx}: {values}";
-            //        var tipSize = canvas.GetStringSize(tip, baseFont, FontSize);
-            //        float boxX = hoverX + 8;
-            //        if (boxX + tipSize.Width + 12 > plot.Right) boxX = hoverX - 8 - tipSize.Width - 12;
-            //        // Posiciona tooltip dentro da margem reservada
-            //        float boxY = plot.Top - TooltipTopMargin + (TooltipTopMargin - (tipSize.Height + 8)) / 2f;
-            //        if (boxY < 0) boxY = 0;
-
-            //        canvas.FillColor = Colors.White.WithAlpha(0.90f);
-            //        canvas.FillRectangle(boxX, boxY, tipSize.Width + 12, tipSize.Height + 8);
-            //        canvas.StrokeColor = AxisColor;
-            //        canvas.DrawRectangle(boxX, boxY, tipSize.Width + 12, tipSize.Height + 8);
-            //        canvas.FontColor = Colors.Black;
-            //        canvas.DrawString(tip, boxX + 6, boxY + 4, HorizontalAlignment.Left);
-            //    }
-            //}
-            // Hover marker + tooltip
             if (HoverPoint.HasValue)
             {
                 var hp = HoverPoint.Value;
@@ -249,51 +211,103 @@ namespace MauiAppBrownianMotion.Models
 
                     float hoverX = LocalIndexToX(localIdx, visibleCount, plot);
 
-                    // linha vertical
-                    canvas.StrokeColor = Colors.Black.WithAlpha(0.4f);
+                    // Encontrar série mais próxima verticalmente ao cursor
+                    int closestSeriesIndex = -1;
+                    double closestValue = double.NaN;
+                    float smallestDy = float.MaxValue;
+                    for (int si = 0; si < paths.Count; si++)
+                    {
+                        var s = paths[si];
+                        if (globalIdx >= s.Length) continue;
+                        float yVal = ValueToY(s[globalIdx], visMin, visMax, plot);
+                        float dy = MathF.Abs(yVal - hp.Y);
+                        if (dy < smallestDy)
+                        {
+                            smallestDy = dy;
+                            closestSeriesIndex = si;
+                            closestValue = s[globalIdx];
+                        }
+                    }
+
+                    // linha vertical geral
+                    canvas.StrokeColor = Colors.Black.WithAlpha(0.35f);
                     canvas.StrokeSize = 1;
                     canvas.DrawLine(AlignPx(hoverX), plot.Top, AlignPx(hoverX), plot.Bottom);
 
-                    // texto
-                    string values = string.Join(", ", paths.Select((s, i) =>
-                        globalIdx < s.Length ? $"S{i + 1}={s[globalIdx]:0.###}" : $"S{i + 1}=-"));
-                    string tip = $"i {globalIdx}: {values}";
+                    // Tooltip apenas com a série mais próxima
+                    if (closestSeriesIndex >= 0)
+                    {
+                        // Cor da série (mesma lógica determinística usada ao desenhar)
+                        var rnd = new Random(closestSeriesIndex * 7919);
+                        var seriesColor = Color.FromRgb(rnd.Next(40, 220), rnd.Next(40, 220), rnd.Next(40, 220));
 
-                    // medir
-                    var tipSize = canvas.GetStringSize(tip, baseFont, FontSize);
-                    float boxW = tipSize.Width + 12f;
-                    float boxH = tipSize.Height + 8f;
+                        string tip = $"Dia: {globalIdx}: Série {closestSeriesIndex + 1} Preço: R${closestValue:0.###}";
+                        var tipSize = canvas.GetStringSize(tip, baseFont, FontSize);
+                        float boxW = tipSize.Width + 14f;
+                        float boxH = tipSize.Height + 10f;
 
-                    // X preferido: direita do hover; se não couber, esquerda
-                    float boxX = hoverX + 8f;
-                    if (boxX + boxW > dirtyRect.Right) boxX = hoverX - 8f - boxW;
-                    // clamp em X
-                    boxX = MathF.Min(MathF.Max(boxX, dirtyRect.Left + 1f), dirtyRect.Right - boxW - 1f);
+                        float boxX = hoverX + 8f;
+                        if (boxX + boxW > dirtyRect.Right) boxX = hoverX - 8f - boxW;
+                        boxX = MathF.Min(MathF.Max(boxX, dirtyRect.Left + 1f), dirtyRect.Right - boxW - 1f);
 
-                    // Y: 1) faixa reservada acima do plot; 2) abaixo; 3) dentro
-                    float topBandH = plot.Top - dirtyRect.Top;
-                    float bottomBandH = dirtyRect.Bottom - plot.Bottom;
-                    float boxY;
-                    if (boxH + 2f <= topBandH)
-                        boxY = plot.Top - boxH - 2f;           // acima do plot
-                    else if (boxH + 2f <= bottomBandH)
-                        boxY = plot.Bottom + 2f;               // abaixo do plot
-                    else
-                        boxY = plot.Top + 2f;                  // dentro do plot
-                                                               // clamp em Y
-                    boxY = MathF.Min(MathF.Max(boxY, dirtyRect.Top + 1f), dirtyRect.Bottom - boxH - 1f);
+                        float topBandH = plot.Top - dirtyRect.Top;
+                        float bottomBandH = dirtyRect.Bottom - plot.Bottom;
+                        float boxY;
+                        if (boxH + 2f <= topBandH)
+                            boxY = plot.Top - boxH - 2f;
+                        else if (boxH + 2f <= bottomBandH)
+                            boxY = plot.Bottom + 2f;
+                        else
+                            boxY = plot.Top + 2f;
+                        boxY = MathF.Min(MathF.Max(boxY, dirtyRect.Top + 1f), dirtyRect.Bottom - boxH - 1f);
 
-                    // desenha caixa
-                    canvas.FillColor = Colors.White.WithAlpha(0.90f);
-                    canvas.FillRectangle(boxX, boxY, boxW, boxH);
-                    canvas.StrokeColor = AxisColor;
-                    canvas.DrawRectangle(boxX, boxY, boxW, boxH);
+                        // fundo
+                        canvas.FillColor = Colors.White.WithAlpha(0.92f);
+                        canvas.FillRectangle(boxX, boxY, boxW, boxH);
+                        canvas.StrokeColor = seriesColor;
+                        canvas.DrawRectangle(boxX, boxY, boxW, boxH);
 
-                    // texto centralizado no retângulo
-                    canvas.FontColor = Colors.Black;
-                    canvas.FontSize = FontSize;
-                    var tipRect = new RectF(boxX, boxY, boxW, boxH);
-                    canvas.DrawString(tip, tipRect, HorizontalAlignment.Center, VerticalAlignment.Center);
+                        // texto
+                        canvas.FontColor = Colors.Black;
+                        var tipRect = new RectF(boxX, boxY, boxW, boxH);
+                        canvas.DrawString(tip, tipRect, HorizontalAlignment.Center, VerticalAlignment.Center);
+
+                        // destaque do ponto na série escolhida
+                        var chosenSeries = paths[closestSeriesIndex];
+                        if (globalIdx < chosenSeries.Length)
+                        {
+                            float pointY = ValueToY(chosenSeries[globalIdx], visMin, visMax, plot);
+                            canvas.FillColor = seriesColor;
+                            float r = 4.5f;
+                            canvas.FillEllipse(hoverX - r, pointY - r, r * 2, r * 2);
+                            canvas.StrokeColor = Colors.White;
+                            canvas.StrokeSize = 1f;
+                            canvas.DrawEllipse(hoverX - r, pointY - r, r * 2, r * 2);
+                        }
+
+                        // Redesenhar a série destacada por cima (mais espessa)
+                        var series = paths[closestSeriesIndex];
+                        if (series.Length > 1 && startIndex < series.Length)
+                        {
+                            int localVisibleEnd = Math.Min(endIndex, series.Length - 1);
+                            if (localVisibleEnd > startIndex)
+                            {
+                                canvas.StrokeColor = seriesColor;
+                                canvas.StrokeSize = SeriesStrokeSize * 1.8f;
+                                float xStep = plot.Width / Math.Max(1, (visibleCount - 1));
+                                float prevX = plot.Left;
+                                float prevY = ValueToY(series[startIndex], visMin, visMax, plot);
+                                for (int global = startIndex + 1; global <= localVisibleEnd; global++)
+                                {
+                                    int local = global - startIndex;
+                                    float x = plot.Left + local * xStep;
+                                    float y = ValueToY(series[global], visMin, visMax, plot);
+                                    canvas.DrawLine(prevX, prevY, x, y);
+                                    prevX = x; prevY = y;
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
