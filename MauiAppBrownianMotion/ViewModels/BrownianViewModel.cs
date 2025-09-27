@@ -187,7 +187,7 @@ namespace MauiAppBrownianMotion.ViewModels
         #endregion
 
         #region Downsampling config
-        public const int MaxChartPoints = 2_000;
+        public const int MaxChartPoints = 10_000;
         static double[] Downsample(double[] source, int maxPoints)
         {
             // Mantém original se já pequeno

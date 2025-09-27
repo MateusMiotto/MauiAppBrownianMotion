@@ -278,7 +278,8 @@ namespace MauiAppBrownianMotion.Models
                 int xtGlobal = xTicksGlobal[i];
                 float x = LocalIndexToX(xtLocal, visibleCount, plot);
                 canvas.DrawLine(AlignPx(x), plot.Bottom, AlignPx(x), plot.Bottom + 5);
-                string label = xtGlobal.ToString();
+                // Ajuste: exibir eixo X iniciando em 1 (dias humanos) em vez de índice zero-based
+                string label = (xtGlobal + 1).ToString();
                 var rect = new RectF(x - 30, plot.Bottom + 6, 60, 18);
                 canvas.DrawString(label, rect, HorizontalAlignment.Center, VerticalAlignment.Top);
             }
@@ -318,6 +319,7 @@ namespace MauiAppBrownianMotion.Models
 
         private void DrawHover(ICanvas canvas, RectF plot, List<double[]> paths, int startIndex, int endIndex, int visibleCount, double visMin, double visMax, RectF dirtyRect, IFont baseFont)
         {
+            if (!HoverEnabled) return;
             if (!HoverPoint.HasValue) return;
             var hp = HoverPoint.Value;
             if (!(hp.X >= plot.Left && hp.X <= plot.Right && hp.Y >= plot.Top && hp.Y <= plot.Bottom && visibleCount > 0)) return;
@@ -345,7 +347,6 @@ namespace MauiAppBrownianMotion.Models
                 }
             }
 
-            // linha vertical geral
             canvas.StrokeColor = Colors.Black.WithAlpha(0.35f);
             canvas.StrokeSize = 1;
             canvas.DrawLine(AlignPx(hoverX), plot.Top, AlignPx(hoverX), plot.Bottom);
@@ -355,7 +356,8 @@ namespace MauiAppBrownianMotion.Models
             var chosenStyle = GetSeriesStyle(closestSeriesIndex);
             var seriesColor = chosenStyle.StrokeColor;
 
-            string tip = $"Dia: {globalIdx} Série: {closestSeriesIndex + 1} Preço: R${closestValue:0.###}";
+            // Ajuste: mostrar Dia em base 1
+            string tip = $"Dia: {globalIdx + 1} Série: {closestSeriesIndex + 1} Preço: R${closestValue:0.###}";
             var tipSize = canvas.GetStringSize(tip, baseFont, FontSize);
             float boxW = tipSize.Width + 14f;
             float boxH = tipSize.Height + 10f;
