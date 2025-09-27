@@ -16,10 +16,7 @@
         <Style x:Key="NumericEntryStyle" TargetType="Entry">
             <Setter Property="Keyboard" Value="Numeric" />
         </Style>
-        <Style
-            x:Key="NarrowEntryStyle"
-            BasedOn="{StaticResource NumericEntryStyle}"
-            TargetType="Entry">
+        <Style x:Key="NarrowEntryStyle" BasedOn="{StaticResource NumericEntryStyle}" TargetType="Entry">
             <Setter Property="FontSize" Value="12" />
         </Style>
         <Style x:Key="FieldContainerVertical" TargetType="VerticalStackLayout">
@@ -56,7 +53,7 @@
                 <Grid
                     ColumnDefinitions="Auto,*"
                     ColumnSpacing="8"
-                    RowDefinitions="Auto,Auto,Auto,Auto,Auto"
+                    RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
                     RowSpacing="8">
                     <Label
                         Grid.Row="0"
@@ -77,7 +74,7 @@
                         Grid.Row="1"
                         Grid.Column="0"
                         Style="{StaticResource InputLabelStyle}"
-                        Text="Volatilidade (% a.a.):" />
+                        Text="{Binding Source={RelativeSource AncestorType={x:Type vm:BrownianViewModel}}, Path=PeriodicidadeSufixo, StringFormat='Volatilidade (% {0}):'}" />
                     <Entry
                         x:Name="VolatilidadeEntry"
                         Grid.Row="1"
@@ -92,7 +89,7 @@
                         Grid.Row="2"
                         Grid.Column="0"
                         Style="{StaticResource InputLabelStyle}"
-                        Text="Retorno (% a.a.):" />
+                        Text="{Binding Source={RelativeSource AncestorType={x:Type vm:BrownianViewModel}}, Path=PeriodicidadeSufixo, StringFormat='Retorno (% {0}):'}" />
                     <Entry
                         x:Name="RetornoEntry"
                         Grid.Row="2"
@@ -133,6 +130,16 @@
                             <behaviors:NumericEntryBehavior />
                         </Entry.Behaviors>
                     </Entry>
+                    <Label
+                        Grid.Row="5"
+                        Grid.Column="0"
+                        Style="{StaticResource InputLabelStyle}"
+                        Text="Usar valores mensais" />
+                    <Switch
+                        Grid.Row="5"
+                        Grid.Column="1"
+                        HorizontalOptions="Start"
+                        IsToggled="{Binding UsarPeriodicidadeMensal}" />
                 </Grid>
                 <Button Command="{Binding GerarSimulacaoCommand}" Text="Gerar simulação" />
             </VerticalStackLayout>
@@ -165,7 +172,7 @@
                         </Entry>
                     </VerticalStackLayout>
                     <VerticalStackLayout Style="{StaticResource FieldContainerVertical}" WidthRequest="160">
-                        <Label FontSize="11" Text="Vol (% a.a.)" />
+                        <Label FontSize="11" Text="{Binding PeriodicidadeSufixo, StringFormat='Vol (% {0})'}" />
                         <Entry
                             x:Name="VolatilidadeEntryN"
                             Style="{StaticResource NarrowEntryStyle}"
@@ -176,7 +183,7 @@
                         </Entry>
                     </VerticalStackLayout>
                     <VerticalStackLayout Style="{StaticResource FieldContainerVertical}" WidthRequest="150">
-                        <Label FontSize="11" Text="Ret (% a.a.)" />
+                        <Label FontSize="11" Text="{Binding PeriodicidadeSufixo, StringFormat='Ret (% {0})'}" />
                         <Entry
                             x:Name="RetornoEntryN"
                             Style="{StaticResource NarrowEntryStyle}"
@@ -207,6 +214,10 @@
                                 <behaviors:NumericEntryBehavior />
                             </Entry.Behaviors>
                         </Entry>
+                    </VerticalStackLayout>
+                    <VerticalStackLayout Style="{StaticResource FieldContainerVertical}" WidthRequest="120">
+                        <Label FontSize="11" Text="Mensal" />
+                        <Switch IsToggled="{Binding UsarPeriodicidadeMensal}" />
                     </VerticalStackLayout>
                 </FlexLayout>
                 <Button Command="{Binding GerarSimulacaoCommand}" Text="Gerar simulação" />

@@ -9,8 +9,8 @@ namespace MauiAppBrownianMotion.ViewModels
         #region Numeric (parsed) properties
         // Propriedades numéricas internas usadas no cálculo
         [ObservableProperty] double precoInicial = 100;
-        [ObservableProperty] double volatilidadePercent = 20; // % a.a.
-        [ObservableProperty] double retornoPercent = 1;       // % a.a.
+        [ObservableProperty] double volatilidadePercent = 20; // % (a.a. ou a.m.)
+        [ObservableProperty] double retornoPercent = 1;       // % (a.a. ou a.m.)
         [ObservableProperty] int tempoDias = 252;
         [ObservableProperty] int numeroSimulacoes = 1;
         #endregion
@@ -24,6 +24,25 @@ namespace MauiAppBrownianMotion.ViewModels
         [ObservableProperty] string numeroSimulacoesInput = "1";
         #endregion
 
+        #region Flags / Options
+        private bool usarPeriodicidadeMensal; // false = anual, true = mensal
+        public bool UsarPeriodicidadeMensal
+        {
+            get => usarPeriodicidadeMensal;
+            set
+            {
+                if (SetProperty(ref usarPeriodicidadeMensal, value))
+                {
+                    // Atualiza labels dependentes
+                    OnPropertyChanged(nameof(PeriodicidadeSufixo));
+                    RaiseCanExecute();
+                }
+            }
+        }
+        // Sufixo exibido nos labels de %
+        public string PeriodicidadeSufixo => UsarPeriodicidadeMensal ? "a.m." : "a.a.";
+        #endregion
+
         #region Output / UI data
         // paths para desenhar
         [ObservableProperty] List<double[]> paths = new();
@@ -35,10 +54,7 @@ namespace MauiAppBrownianMotion.ViewModels
 
         #region Events
         public event Action? RedrawRequested;
-
-        // chamado automaticamente quando Paths muda
-        partial void OnPathsChanged(List<double[]> value)
-            => RedrawRequested?.Invoke();
+        partial void OnPathsChanged(List<double[]> value) => RedrawRequested?.Invoke();
         #endregion
 
         #region Construction / Initialization
@@ -47,7 +63,6 @@ namespace MauiAppBrownianMotion.ViewModels
         #endregion
 
         #region Commands (Gerar Simulação)
-        // CanExecute property usado pelo RelayCommand
         public bool CanGerarSimulacao => ValidateInputs(false, out _);
 
         [RelayCommand(CanExecute = nameof(CanGerarSimulacao))]
@@ -61,18 +76,23 @@ namespace MauiAppBrownianMotion.ViewModels
                     return;
                 }
 
-                double sigmaA = VolatilidadePercent / 100.0;
-                double muA = RetornoPercent / 100.0;
+                double sigmaInput = VolatilidadePercent / 100.0;
+                double muInput = RetornoPercent / 100.0;
 
-                var sigmaD = AnnualVolToDaily(sigmaA);
-                var muD = AnnualMeanToDaily(muA);
+                double sigmaD = UsarPeriodicidadeMensal
+                    ? MonthlyVolToDaily(sigmaInput)
+                    : AnnualVolToDaily(sigmaInput);
+
+                double muD = UsarPeriodicidadeMensal
+                    ? MonthlyMeanToDaily(muInput)
+                    : AnnualMeanToDaily(muInput);
 
                 var list = new List<double[]>();
                 for (int k = 0; k < Math.Max(1, NumeroSimulacoes); k++)
                     list.Add(GenerateBromnianMotion(sigmaD, muD, PrecoInicial, Math.Max(2, TempoDias)));
 
                 Paths = list;
-                RedrawRequested?.Invoke(); // expõe action para a View
+                RedrawRequested?.Invoke();
             }
             catch (Exception ex)
             {
@@ -82,7 +102,6 @@ namespace MauiAppBrownianMotion.ViewModels
         #endregion
 
         #region Validation
-        // Validação central reutilizada por CanExecute e execução
         bool ValidateInputs(bool canShowError, out string? error)
         {
             error = null;
@@ -130,6 +149,8 @@ namespace MauiAppBrownianMotion.ViewModels
         #region Simulation helpers
         static double AnnualVolToDaily(double sigmaAnnual) => sigmaAnnual / Math.Sqrt(252.0);
         static double AnnualMeanToDaily(double muAnnual) => Math.Pow(1.0 + muAnnual, 1.0 / 252.0) - 1.0;
+        static double MonthlyVolToDaily(double sigmaMonthly) => sigmaMonthly / Math.Sqrt(21.0);
+        static double MonthlyMeanToDaily(double muMonthly) => Math.Pow(1.0 + muMonthly, 1.0 / 21.0) - 1.0;
 
         public static double[] GenerateBromnianMotion(double sigma, double mean, double initialPrice, int numDays)
         {
@@ -156,8 +177,6 @@ namespace MauiAppBrownianMotion.ViewModels
             OnPropertyChanged(nameof(CanGerarSimulacao));
             GerarSimulacaoCommand.NotifyCanExecuteChanged();
         }
-
-        // Dispara reavaliação do CanExecute quando qualquer input muda
         partial void OnPrecoInicialInputChanged(string value) => RaiseCanExecute();
         partial void OnVolatilidadePercentInputChanged(string value) => RaiseCanExecute();
         partial void OnRetornoPercentInputChanged(string value) => RaiseCanExecute();
