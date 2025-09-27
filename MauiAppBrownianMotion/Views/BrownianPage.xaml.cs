@@ -3,15 +3,16 @@ using MauiAppBrownianMotion.Views.Base;
 
 namespace MauiAppBrownianMotion.Pages
 {
-    public partial class MainPage : ContentPage, IMauiView
+    public partial class BrownianPage : ContentPage, IMauiView
     {
         readonly GbmDrawable drawable = new();
 
-        public MainPage()
+        public BrownianPage()
         {
             InitializeComponent();
             this.InjectViewModel();
-            var vm = (BindingContext as MainPageViewModel);
+
+            var vm = (BindingContext as BrownianViewModel);
 
             if (vm == null)
                 throw new InvalidOperationException("ViewModel não pode ser nulo");

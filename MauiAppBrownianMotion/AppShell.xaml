@@ -10,9 +10,9 @@
     Shell.FlyoutBehavior="Flyout">
 
     <ShellContent
-        Title="MainPage"
-        ContentTemplate="{DataTemplate pages:MainPage}"
-        Route="mainpage" />
+        Title="Brownian Chart Generator"
+        ContentTemplate="{DataTemplate pages:BrownianPage}"
+        Route="brownianpage" />
 
     <Shell.FlyoutFooter>
         <Grid Padding="15">

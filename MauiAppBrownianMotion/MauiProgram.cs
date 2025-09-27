@@ -33,10 +33,7 @@ namespace MauiAppBrownianMotion
             builder.Services.AddSingleton<ModalErrorHandler>();
             builder.Services.AddSingleton<INavigationService, NavigationService>();
 
-            var app = builder.Build();
-            ServiceHelper.Initialize(app.Services);
-
-            return app;
+            return builder.Build();
         }
     }
 }

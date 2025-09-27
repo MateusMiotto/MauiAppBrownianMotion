@@ -11,7 +11,7 @@ namespace MauiAppBrownianMotion.Services
         private readonly IServiceProvider _serviceProvider;
         private readonly IDictionary<string, Type> _routes = new Dictionary<string, Type>
         {
-            ["mainpage"] = typeof(MainPage)
+            ["brownianpage"] = typeof(BrownianPage)
         };
 
         public NavigationService(IServiceProvider serviceProvider)

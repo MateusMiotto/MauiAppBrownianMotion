@@ -48,7 +48,7 @@ namespace MauiAppBrownianMotion.Views.Base
         /// <param name="view">View implementing <see cref="IMauiView"/>.</param>
         public static void InjectViewModel(this IMauiView view)
         {
-            var services = Application.Current?.Handler?.MauiContext?.Services ?? ServiceHelper.Services;
+            var services = Application.Current?.Handler?.MauiContext?.Services;
             if (services is null)
                 return;
 
