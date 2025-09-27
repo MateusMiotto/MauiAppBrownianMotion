@@ -45,7 +45,13 @@
             x:Name="Chart"
             Grid.Row="0"
             Grid.Column="0"
-            Drawable="{Binding Source={x:Reference Chart}, Path=BindingContext, Mode=OneWay}" />
+            Drawable="{Binding Source={x:Reference Chart}, Path=BindingContext, Mode=OneWay}">
+            <GraphicsView.GestureRecognizers>
+                <PinchGestureRecognizer PinchUpdated="OnChartPinch" />
+                <PanGestureRecognizer PanUpdated="OnChartPan" />
+                <TapGestureRecognizer NumberOfTapsRequired="2" Tapped="OnChartDoubleTap" />
+            </GraphicsView.GestureRecognizers>
+        </GraphicsView>
 
         <!--  Painel (modo Wide)  -->
         <ContentView
@@ -79,7 +85,7 @@
                         Grid.Row="1"
                         Grid.Column="0"
                         Style="{StaticResource InputLabelStyle}"
-                        Text="{Binding Source={RelativeSource AncestorType={x:Type vm:BrownianViewModel}}, Path=PeriodicidadeSufixo, StringFormat='Volatilidade (% {0}):'}" />
+                        Text="Volatilidade (%):" />
                     <Entry
                         x:Name="VolatilidadeEntry"
                         Grid.Row="1"
@@ -94,7 +100,7 @@
                         Grid.Row="2"
                         Grid.Column="0"
                         Style="{StaticResource InputLabelStyle}"
-                        Text="{Binding Source={RelativeSource AncestorType={x:Type vm:BrownianViewModel}}, Path=PeriodicidadeSufixo, StringFormat='Retorno (% {0}):'}" />
+                        Text="Retorno (%):" />
                     <Entry
                         x:Name="RetornoEntry"
                         Grid.Row="2"
@@ -135,16 +141,7 @@
                             <behaviors:NumericEntryBehavior />
                         </Entry.Behaviors>
                     </Entry>
-                    <Label
-                        Grid.Row="5"
-                        Grid.Column="0"
-                        Style="{StaticResource InputLabelStyle}"
-                        Text="Usar valores mensais" />
-                    <Switch
-                        Grid.Row="5"
-                        Grid.Column="1"
-                        HorizontalOptions="Start"
-                        IsToggled="{Binding UsarPeriodicidadeMensal}" />
+
                     <HorizontalStackLayout
                         Grid.Row="6"
                         Grid.ColumnSpan="2"
@@ -198,7 +195,7 @@
                         </Entry>
                     </VerticalStackLayout>
                     <VerticalStackLayout Style="{StaticResource FieldContainerVertical}" WidthRequest="160">
-                        <Label FontSize="11" Text="{Binding PeriodicidadeSufixo, StringFormat='Vol (% {0})'}" />
+                        <Label FontSize="11" Text="Volatilidade (%):" />
                         <Entry
                             x:Name="VolatilidadeEntryN"
                             Style="{StaticResource NarrowEntryStyle}"
@@ -209,7 +206,7 @@
                         </Entry>
                     </VerticalStackLayout>
                     <VerticalStackLayout Style="{StaticResource FieldContainerVertical}" WidthRequest="150">
-                        <Label FontSize="11" Text="{Binding PeriodicidadeSufixo, StringFormat='Ret (% {0})'}" />
+                        <Label FontSize="11" Text="Retorno (%):" />
                         <Entry
                             x:Name="RetornoEntryN"
                             Style="{StaticResource NarrowEntryStyle}"
@@ -240,10 +237,6 @@
                                 <behaviors:NumericEntryBehavior />
                             </Entry.Behaviors>
                         </Entry>
-                    </VerticalStackLayout>
-                    <VerticalStackLayout Style="{StaticResource FieldContainerVertical}" WidthRequest="140">
-                        <Label FontSize="11" Text="Mensal" />
-                        <Switch IsToggled="{Binding UsarPeriodicidadeMensal}" />
                     </VerticalStackLayout>
                 </FlexLayout>
                 <HorizontalStackLayout Spacing="8" VerticalOptions="Start">

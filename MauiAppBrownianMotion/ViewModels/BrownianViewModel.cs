@@ -5,23 +5,20 @@ using System.Diagnostics;
 using System.Threading;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Collections.Concurrent;
 
 namespace MauiAppBrownianMotion.ViewModels
 {
     public partial class BrownianViewModel : ObservableObject, INavigationViewModel
     {
         #region Numeric (parsed) properties
-        // Propriedades numéricas internas usadas no cálculo
         [ObservableProperty] double precoInicial = 100;
-        [ObservableProperty] double volatilidadePercent = 20; // % (a.a. ou a.m.)
-        [ObservableProperty] double retornoPercent = 1;       // % (a.a. ou a.m.)
+        [ObservableProperty] double volatilidadePercent = 20;
+        [ObservableProperty] double retornoPercent = 1;
         [ObservableProperty] int tempoDias = 252;
         [ObservableProperty] int numeroSimulacoes = 1;
         #endregion
 
-        #region Input (text) properties bound to Entry (aceitam vazio)
-        // Propriedades de entrada (texto) ligadas aos Entry - permitem campo vazio
+        #region Input (text) properties
         [ObservableProperty] string precoInicialInput = "100";
         [ObservableProperty] string volatilidadePercentInput = "20";
         [ObservableProperty] string retornoPercentInput = "1";
@@ -29,24 +26,7 @@ namespace MauiAppBrownianMotion.ViewModels
         [ObservableProperty] string numeroSimulacoesInput = "1";
         #endregion
 
-        #region Flags / Options
-        private bool usarPeriodicidadeMensal; // false = anual, true = mensal
-        public bool UsarPeriodicidadeMensal
-        {
-            get => usarPeriodicidadeMensal;
-            set
-            {
-                if (SetProperty(ref usarPeriodicidadeMensal, value))
-                {
-                    OnPropertyChanged(nameof(PeriodicidadeSufixo));
-                    RaiseCanExecute();
-                }
-            }
-        }
-        public string PeriodicidadeSufixo => UsarPeriodicidadeMensal ? "a.m." : "a.a.";
-        #endregion
-
-        #region Output / UI data
+        #region Output / UI
         private const string ProcessingTimeFormat = @"mm\:ss\.fff";
         [ObservableProperty] List<double[]> paths = new();
         private bool isProcessing;
@@ -62,11 +42,10 @@ namespace MauiAppBrownianMotion.ViewModels
                 }
             }
         }
-
         [ObservableProperty] string processingTime = "00:00.000";
         #endregion
 
-        #region Timer infra
+        #region Timer
         IDispatcherTimer? processingTimer;
         Stopwatch? processingStopwatch;
         void StartProcessingTimer()
@@ -106,24 +85,21 @@ namespace MauiAppBrownianMotion.ViewModels
         partial void OnPathsChanged(List<double[]> value) => RedrawRequested?.Invoke();
         #endregion
 
-        #region Cancellation infra
+        #region Cancellation
         CancellationTokenSource? simulationCts;
         #endregion
 
-        #region Construction / Initialization
-        public BrownianViewModel()
-        {
-            // Comando Cancelar gerado via atributo [RelayCommand]
-        }
+        #region Construction
+        public BrownianViewModel() { }
         public async Task InitializeAsync(IDictionary<string, object>? parameters) { }
         #endregion
 
-        #region Heavy threshold dinâmico
+        #region Heavy threshold
         private const int BasePointsPerCore = 375_000;
         public static int HeavyThresholdPoints => BasePointsPerCore * Environment.ProcessorCount;
         #endregion
 
-        #region Contador de janelas em segundo plano
+        #region Background windows
         static int backgroundWindowSequence;
         static int NextBackgroundSequence() => Interlocked.Increment(ref backgroundWindowSequence);
 
@@ -136,18 +112,15 @@ namespace MauiAppBrownianMotion.ViewModels
                 if (SetProperty(ref isBackgroundWindow, value))
                 {
                     OnPropertyChanged(nameof(MostrarBotaoGerar));
-                    // Opcional: se quiser impedir gerar mesmo via atalho
                     RaiseCanExecute();
                 }
             }
         }
-
-        // Usado no XAML para controlar visibilidade do botão Gerar
         public bool MostrarBotaoGerar => !IsBackgroundWindow;
         #endregion
 
-        #region Commands (Gerar / Cancelar)
-        public bool CanGerarSimulacao => !IsProcessing && ValidateInputs(false, out _);
+        #region Commands
+        public bool CanGerarSimulacao => !IsProcessing && !IsBackgroundWindow && ValidateInputs(false, out _);
         public bool CanCancelar => IsProcessing;
 
         [RelayCommand(CanExecute = nameof(CanCancelar))]
@@ -157,10 +130,7 @@ namespace MauiAppBrownianMotion.ViewModels
             if (IsBackgroundWindow)
             {
                 var win = Application.Current?.Windows.FirstOrDefault(w => w.Page?.BindingContext == this);
-                if (win != null)
-                {
-                    Application.Current?.CloseWindow(win);
-                }
+                if (win != null) Application.Current?.CloseWindow(win);
             }
         }
 
@@ -171,17 +141,15 @@ namespace MauiAppBrownianMotion.ViewModels
             {
                 if (!ValidateInputs(true, out var validationError))
                 {
-                    await Application.Current?.MainPage?.DisplayAlert("Validação", validationError, "OK");
+                    await (Application.Current?.MainPage?.DisplayAlert("Validação", validationError, "OK") ?? Task.CompletedTask);
                     return;
                 }
-
                 if (!await ValidateHeavy()) return;
-
                 await RunSimulationAsync();
             }
             catch (Exception ex)
             {
-                await Application.Current?.MainPage?.DisplayAlert("Erro", ex.Message, "OK");
+                await (Application.Current?.MainPage?.DisplayAlert("Erro", ex.Message, "OK") ?? Task.CompletedTask);
             }
         }
 
@@ -204,22 +172,35 @@ namespace MauiAppBrownianMotion.ViewModels
                 vm2.RetornoPercentInput = RetornoPercentInput;
                 vm2.TempoDiasInput = TempoDiasInput;
                 vm2.NumeroSimulacoesInput = NumeroSimulacoesInput;
-                vm2.UsarPeriodicidadeMensal = UsarPeriodicidadeMensal;
                 vm2.IsBackgroundWindow = true;
 
                 int seq = NextBackgroundSequence();
-                string title = $"Solicitação de Execução em Segundo plano #{seq}";
+                string title = $"Execução em Segundo Plano #{seq}";
                 newPage.Title = title;
-                var window = new Window(newPage)
-                {
-                    Title = title
-                };
-
+                var window = new Window(newPage) { Title = title };
                 Application.Current!.OpenWindow(window);
-                _ = vm2.RunSimulationAsync();
+                _ = vm2.RunSimulationAsync(); // fire & forget protegido internamente
                 return false;
             }
             return true;
+        }
+        #endregion
+
+        #region Downsampling config
+        public const int MaxChartPoints = 2_000;
+        static double[] Downsample(double[] source, int maxPoints)
+        {
+            if (source.Length <= maxPoints) return source;
+            if (maxPoints < 2) return new[] { source[^1] };
+            double[] target = new double[maxPoints];
+            double step = (source.Length - 1.0) / (maxPoints - 1.0);
+            for (int i = 0; i < maxPoints; i++)
+            {
+                int idx = (int)Math.Round(i * step);
+                if (idx >= source.Length) idx = source.Length - 1;
+                target[i] = source[idx];
+            }
+            return target;
         }
         #endregion
 
@@ -235,29 +216,44 @@ namespace MauiAppBrownianMotion.ViewModels
             try
             {
                 IsProcessing = true;
+
                 if (!ValidateInputs(true, out var validationError))
                 {
-                    await Application.Current?.MainPage?.DisplayAlert("Validação", validationError, "OK");
+                    if (!IsBackgroundWindow)
+                        await (Application.Current?.MainPage?.DisplayAlert("Validação", validationError, "OK") ?? Task.CompletedTask);
                     return;
                 }
 
                 double sigmaInput = VolatilidadePercent / 100.0;
                 double muInput = RetornoPercent / 100.0;
-
-                double sigmaD = UsarPeriodicidadeMensal ? MonthlyVolToDaily(sigmaInput) : AnnualVolToDaily(sigmaInput);
-                double muD = UsarPeriodicidadeMensal ? MonthlyMeanToDaily(muInput) : AnnualMeanToDaily(muInput);
-
+                double sigmaD = sigmaInput;
+                double muD = muInput;
                 int sims = Math.Max(1, NumeroSimulacoes);
                 int dias = Math.Max(2, TempoDias);
 
-                // Sempre offload para thread pool (CPU-bound)
-                List<double[]> result = await Task.Run(() => GeneratePaths(sims, dias, sigmaD, muD, PrecoInicial, token), token);
+                var result = await Task.Run(() => GeneratePaths(sims, dias, sigmaD, muD, PrecoInicial, token), token);
+
+                if (token.IsCancellationRequested) return;
+
+                // Downsampling antes de atribuir à UI
+                if (MaxChartPoints > 0)
+                {
+                    for (int i = 0; i < result.Count; i++)
+                        if (result[i].Length > MaxChartPoints)
+                            result[i] = Downsample(result[i], MaxChartPoints);
+                }
+
+                // Permite UI respirar antes de redesenhar grande lote
+                await Task.Yield();
 
                 if (!token.IsCancellationRequested)
                     Paths = result;
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException){ }
+            catch (Exception ex)
             {
+                if (!IsBackgroundWindow)
+                    await (Application.Current?.MainPage?.DisplayAlert("Erro", ex.Message, "OK") ?? Task.CompletedTask);
             }
             finally
             {
@@ -284,7 +280,6 @@ namespace MauiAppBrownianMotion.ViewModels
                 return listSeq;
             }
             var arr = new double[sims][];
-            // Reserva 1 core para manter UI responsiva (timer / animações)
             int maxParallel = Math.Max(1, Environment.ProcessorCount - 1);
             Parallel.For(0, sims, new ParallelOptions { CancellationToken = token, MaxDegreeOfParallelism = maxParallel }, i =>
             {
@@ -303,7 +298,7 @@ namespace MauiAppBrownianMotion.ViewModels
             {
                 value = 0; err = null;
                 if (string.IsNullOrWhiteSpace(txt)) { err = $"Campo '{field}' está vazio"; return false; }
-                if (!double.TryParse(txt, System.Globalization.NumberStyles.Float, culture, out value)) { err = $"Campo '{field}' inválido"; return false; }
+                if (!double.TryParse(txt, NumberStyles.Float, culture, out value)) { err = $"Campo '{field}' inválido"; return false; }
                 if (value < 0) { err = $"Campo '{field}' não pode ser negativo"; return false; }
                 if (mustBePositive && value <= 0) { err = $"Campo '{field}' deve ser maior que 0"; return false; }
                 return true;
@@ -312,7 +307,7 @@ namespace MauiAppBrownianMotion.ViewModels
             {
                 value = 0; err = null;
                 if (string.IsNullOrWhiteSpace(txt)) { err = $"Campo '{field}' está vazio"; return false; }
-                if (!int.TryParse(txt, System.Globalization.NumberStyles.Integer, culture, out value)) { err = $"Campo '{field}' inválido"; return false; }
+                if (!int.TryParse(txt, NumberStyles.Integer, culture, out value)) { err = $"Campo '{field}' inválido"; return false; }
                 if (value < 0) { err = $"Campo '{field}' não pode ser negativo"; return false; }
                 if (value < min) { err = $"Campo '{field}' deve ser >= {min}"; return false; }
                 return true;
@@ -335,14 +330,8 @@ namespace MauiAppBrownianMotion.ViewModels
         #endregion
 
         #region Simulation helpers
-        static double AnnualVolToDaily(double sigmaAnnual) => sigmaAnnual / Math.Sqrt(252.0);
-        static double AnnualMeanToDaily(double muAnnual) => Math.Pow(1.0 + muAnnual, 1.0 / 252.0) - 1.0;
-        static double MonthlyVolToDaily(double sigmaMonthly) => sigmaMonthly / Math.Sqrt(21.0);
-        static double MonthlyMeanToDaily(double muMonthly) => Math.Pow(1.0 + muMonthly, 1.0 / 21.0) - 1.0;
 
-        // Random thread-local para evitar correlação / contention
         static readonly ThreadLocal<Random> s_random = new(() => new Random(Random.Shared.Next()));
-
         public static double[] GenerateBromnianMotion(double sigma, double mean, double initialPrice, int numDays, CancellationToken token)
         {
             var rand = s_random.Value!;
@@ -361,7 +350,7 @@ namespace MauiAppBrownianMotion.ViewModels
         }
         #endregion
 
-        #region Property change handlers & helpers
+        #region Helpers
         void RaiseCanExecute()
         {
             OnPropertyChanged(nameof(CanGerarSimulacao));
