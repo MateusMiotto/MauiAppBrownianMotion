@@ -150,13 +150,17 @@
                         Grid.ColumnSpan="2"
                         Spacing="8">
                         <ActivityIndicator IsRunning="{Binding IsProcessing}" IsVisible="{Binding IsProcessing}" />
-                        <Label Text="{Binding ProcessingTime, StringFormat='Tempo de Processamento: {0}'}" VerticalTextAlignment="Center" />
+                        <Label
+                            FontSize="11"
+                            Text="{Binding ProcessingTime, StringFormat='Tempo de Processamento: {0}'}"
+                            VerticalTextAlignment="Center" />
                     </HorizontalStackLayout>
                 </Grid>
                 <HorizontalStackLayout Spacing="8">
                     <Button
                         Command="{Binding GerarSimulacaoCommand}"
                         IsEnabled="{Binding CanGerarSimulacao}"
+                        IsVisible="{Binding MostrarBotaoGerar}"
                         Text="Gerar" />
                     <Button
                         Background="Red"
@@ -244,12 +248,16 @@
                 </FlexLayout>
                 <HorizontalStackLayout Spacing="8" VerticalOptions="Start">
                     <ActivityIndicator IsRunning="{Binding IsProcessing}" IsVisible="{Binding IsProcessing}" />
-                    <Label Text="{Binding ProcessingTime, StringFormat='Tempo de Processamento: {0}'}" VerticalTextAlignment="Center" />
+                    <Label
+                        FontSize="11"
+                        Text="{Binding ProcessingTime, StringFormat='Tempo de Processamento: {0}'}"
+                        VerticalTextAlignment="Center" />
                 </HorizontalStackLayout>
                 <HorizontalStackLayout Spacing="8">
                     <Button
                         Command="{Binding GerarSimulacaoCommand}"
                         IsEnabled="{Binding CanGerarSimulacao}"
+                        IsVisible="{Binding MostrarBotaoGerar}"
                         Text="Gerar" />
                     <Button
                         Background="Red"

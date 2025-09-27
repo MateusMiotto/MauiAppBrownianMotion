@@ -4,6 +4,8 @@ using System.Globalization;
 using System.Diagnostics;
 using System.Threading;
 using System.Linq;
+using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace MauiAppBrownianMotion.ViewModels
 {
@@ -45,6 +47,7 @@ namespace MauiAppBrownianMotion.ViewModels
         #endregion
 
         #region Output / UI data
+        private const string ProcessingTimeFormat = @"mm\:ss\.fff";
         [ObservableProperty] List<double[]> paths = new();
         private bool isProcessing;
         public bool IsProcessing
@@ -55,30 +58,29 @@ namespace MauiAppBrownianMotion.ViewModels
                 if (SetProperty(ref isProcessing, value))
                 {
                     if (value) StartProcessingTimer(); else StopProcessingTimer();
-                    RaiseCanExecute(); // Atualiza comandos Gerar / Cancelar
+                    RaiseCanExecute();
                 }
             }
         }
 
-        [ObservableProperty] string processingTime = "00:00"; // mm:ss
+        [ObservableProperty] string processingTime = "00:00.000";
         #endregion
 
         #region Timer infra
         IDispatcherTimer? processingTimer;
         Stopwatch? processingStopwatch;
-
         void StartProcessingTimer()
         {
             processingStopwatch = Stopwatch.StartNew();
-            ProcessingTime = "00:00";
+            ProcessingTime = TimeSpan.Zero.ToString(ProcessingTimeFormat);
             processingTimer = Application.Current?.Dispatcher.CreateTimer();
             if (processingTimer is null) return;
-            processingTimer.Interval = TimeSpan.FromSeconds(1);
+            processingTimer.Interval = TimeSpan.FromMilliseconds(100);
             processingTimer.IsRepeating = true;
             processingTimer.Tick += (_, _) =>
             {
                 if (processingStopwatch is null) return;
-                ProcessingTime = processingStopwatch.Elapsed.ToString("mm':'ss");
+                ProcessingTime = processingStopwatch.Elapsed.ToString(ProcessingTimeFormat);
             };
             processingTimer.Start();
         }
@@ -88,7 +90,7 @@ namespace MauiAppBrownianMotion.ViewModels
             processingTimer = null;
             if (processingStopwatch != null)
             {
-                ProcessingTime = processingStopwatch.Elapsed.ToString("mm':'ss");
+                ProcessingTime = processingStopwatch.Elapsed.ToString(ProcessingTimeFormat);
                 processingStopwatch.Stop();
                 processingStopwatch = null;
             }
@@ -111,28 +113,56 @@ namespace MauiAppBrownianMotion.ViewModels
         #region Construction / Initialization
         public BrownianViewModel()
         {
-            CancelarCommand = new RelayCommand(Cancelar, () => CanCancelar);
+            // Comando Cancelar gerado via atributo [RelayCommand]
         }
         public async Task InitializeAsync(IDictionary<string, object>? parameters) { }
         #endregion
 
         #region Heavy threshold dinâmico
-        // Base calibrada para manter ~3.000.000 pontos em uma máquina de 8 cores (375k * 8)
-        private const int BasePointsPerCore = 875_000;
+        private const int BasePointsPerCore = 375_000;
         public static int HeavyThresholdPoints => BasePointsPerCore * Environment.ProcessorCount;
         #endregion
 
         #region Contador de janelas em segundo plano
         static int backgroundWindowSequence;
         static int NextBackgroundSequence() => Interlocked.Increment(ref backgroundWindowSequence);
-        public bool IsBackgroundWindow { get; internal set; }
+
+        private bool isBackgroundWindow;
+        public bool IsBackgroundWindow
+        {
+            get => isBackgroundWindow;
+            internal set
+            {
+                if (SetProperty(ref isBackgroundWindow, value))
+                {
+                    OnPropertyChanged(nameof(MostrarBotaoGerar));
+                    // Opcional: se quiser impedir gerar mesmo via atalho
+                    RaiseCanExecute();
+                }
+            }
+        }
+
+        // Usado no XAML para controlar visibilidade do botão Gerar
+        public bool MostrarBotaoGerar => !IsBackgroundWindow;
         #endregion
 
         #region Commands (Gerar / Cancelar)
         public bool CanGerarSimulacao => !IsProcessing && ValidateInputs(false, out _);
         public bool CanCancelar => IsProcessing;
 
-        public IRelayCommand CancelarCommand { get; }
+        [RelayCommand(CanExecute = nameof(CanCancelar))]
+        void Cancelar()
+        {
+            simulationCts?.Cancel();
+            if (IsBackgroundWindow)
+            {
+                var win = Application.Current?.Windows.FirstOrDefault(w => w.Page?.BindingContext == this);
+                if (win != null)
+                {
+                    Application.Current?.CloseWindow(win);
+                }
+            }
+        }
 
         [RelayCommand(CanExecute = nameof(CanGerarSimulacao))]
         public async Task GerarSimulacao()
@@ -147,7 +177,7 @@ namespace MauiAppBrownianMotion.ViewModels
 
                 if (!await ValidateHeavy()) return;
 
-                await RunSimulationAsync(heavy: false);
+                await RunSimulationAsync();
             }
             catch (Exception ex)
             {
@@ -179,37 +209,23 @@ namespace MauiAppBrownianMotion.ViewModels
 
                 int seq = NextBackgroundSequence();
                 string title = $"Solicitação de Execução em Segundo plano #{seq}";
-                newPage.Title = title; // mantém coerência interna
+                newPage.Title = title;
                 var window = new Window(newPage)
                 {
-                    Title = title // garante título da janela no Windows
+                    Title = title
                 };
 
                 Application.Current!.OpenWindow(window);
-                _ = vm2.RunSimulationAsync(heavy: true);
+                _ = vm2.RunSimulationAsync();
                 return false;
             }
             return true;
         }
-
-        void Cancelar()
-        {
-            simulationCts?.Cancel();
-            if (IsBackgroundWindow)
-            {
-                var win = Application.Current?.Windows.FirstOrDefault(w => w.Page?.BindingContext == this);
-                if (win != null)
-                {
-                    Application.Current?.CloseWindow(win);
-                }
-            }
-        }
         #endregion
 
         #region Simulation execution
-        async Task RunSimulationAsync(bool heavy)
+        async Task RunSimulationAsync()
         {
-            // Cancela execução anterior (se houver)
             simulationCts?.Cancel();
             simulationCts?.Dispose();
             var cts = new CancellationTokenSource();
@@ -234,16 +250,14 @@ namespace MauiAppBrownianMotion.ViewModels
                 int sims = Math.Max(1, NumeroSimulacoes);
                 int dias = Math.Max(2, TempoDias);
 
-                List<double[]> result = heavy
-                    ? await Task.Run(() => GeneratePaths(sims, dias, sigmaD, muD, PrecoInicial, token), token)
-                    : GeneratePaths(sims, dias, sigmaD, muD, PrecoInicial, token);
+                // Sempre offload para thread pool (CPU-bound)
+                List<double[]> result = await Task.Run(() => GeneratePaths(sims, dias, sigmaD, muD, PrecoInicial, token), token);
 
                 if (!token.IsCancellationRequested)
                     Paths = result;
             }
             catch (OperationCanceledException)
             {
-
             }
             finally
             {
@@ -258,13 +272,25 @@ namespace MauiAppBrownianMotion.ViewModels
 
         static List<double[]> GeneratePaths(int sims, int dias, double sigmaD, double muD, double precoInicial, CancellationToken token)
         {
-            var list = new List<double[]>(sims);
-            for (int k = 0; k < sims; k++)
+            long totalPoints = (long)sims * dias;
+            if (totalPoints < 50_000 || sims == 1)
             {
-                token.ThrowIfCancellationRequested();
-                list.Add(GenerateBromnianMotion(sigmaD, muD, precoInicial, dias, token));
+                var listSeq = new List<double[]>(sims);
+                for (int k = 0; k < sims; k++)
+                {
+                    token.ThrowIfCancellationRequested();
+                    listSeq.Add(GenerateBromnianMotion(sigmaD, muD, precoInicial, dias, token));
+                }
+                return listSeq;
             }
-            return list;
+            var arr = new double[sims][];
+            // Reserva 1 core para manter UI responsiva (timer / animações)
+            int maxParallel = Math.Max(1, Environment.ProcessorCount - 1);
+            Parallel.For(0, sims, new ParallelOptions { CancellationToken = token, MaxDegreeOfParallelism = maxParallel }, i =>
+            {
+                arr[i] = GenerateBromnianMotion(sigmaD, muD, precoInicial, dias, token);
+            });
+            return arr.ToList();
         }
         #endregion
 
@@ -273,11 +299,9 @@ namespace MauiAppBrownianMotion.ViewModels
         {
             error = null;
             var culture = CultureInfo.CurrentCulture;
-
             bool ParseDouble(string? txt, string field, bool mustBePositive, out double value, out string? err)
             {
-                value = 0;
-                err = null;
+                value = 0; err = null;
                 if (string.IsNullOrWhiteSpace(txt)) { err = $"Campo '{field}' está vazio"; return false; }
                 if (!double.TryParse(txt, System.Globalization.NumberStyles.Float, culture, out value)) { err = $"Campo '{field}' inválido"; return false; }
                 if (value < 0) { err = $"Campo '{field}' não pode ser negativo"; return false; }
@@ -286,21 +310,18 @@ namespace MauiAppBrownianMotion.ViewModels
             }
             bool ParseInt(string? txt, string field, int min, out int value, out string? err)
             {
-                value = 0;
-                err = null;
+                value = 0; err = null;
                 if (string.IsNullOrWhiteSpace(txt)) { err = $"Campo '{field}' está vazio"; return false; }
                 if (!int.TryParse(txt, System.Globalization.NumberStyles.Integer, culture, out value)) { err = $"Campo '{field}' inválido"; return false; }
                 if (value < 0) { err = $"Campo '{field}' não pode ser negativo"; return false; }
                 if (value < min) { err = $"Campo '{field}' deve ser >= {min}"; return false; }
                 return true;
             }
-
             if (!ParseDouble(PrecoInicialInput, "Preço inicial", true, out var preco, out var e1)) { if (canShowError) error = e1; return false; }
             if (!ParseDouble(VolatilidadePercentInput, "Volatilidade", false, out var vol, out var e2)) { if (canShowError) error = e2; return false; }
             if (!ParseDouble(RetornoPercentInput, "Retorno", false, out var ret, out var e3)) { if (canShowError) error = e3; return false; }
             if (!ParseInt(TempoDiasInput, "Tempo (dias)", 1, out var dias, out var e4)) { if (canShowError) error = e4; return false; }
             if (!ParseInt(NumeroSimulacoesInput, "Nº simulações", 1, out var sims, out var e5)) { if (canShowError) error = e5; return false; }
-
             if (canShowError)
             {
                 PrecoInicial = preco;
@@ -319,19 +340,20 @@ namespace MauiAppBrownianMotion.ViewModels
         static double MonthlyVolToDaily(double sigmaMonthly) => sigmaMonthly / Math.Sqrt(21.0);
         static double MonthlyMeanToDaily(double muMonthly) => Math.Pow(1.0 + muMonthly, 1.0 / 21.0) - 1.0;
 
+        // Random thread-local para evitar correlação / contention
+        static readonly ThreadLocal<Random> s_random = new(() => new Random(Random.Shared.Next()));
+
         public static double[] GenerateBromnianMotion(double sigma, double mean, double initialPrice, int numDays, CancellationToken token)
         {
-            Random rand = new();
+            var rand = s_random.Value!;
             double[] prices = new double[numDays];
             prices[0] = initialPrice;
-
             for (int i = 1; i < numDays; i++)
             {
                 token.ThrowIfCancellationRequested();
                 double u1 = 1.0 - rand.NextDouble();
                 double u2 = 1.0 - rand.NextDouble();
                 double z = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
-
                 double retornoDiario = mean + sigma * z;
                 prices[i] = prices[i - 1] * Math.Exp(retornoDiario);
             }
