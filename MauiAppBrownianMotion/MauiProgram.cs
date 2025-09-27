@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui.LifecycleEvents;
 using Syncfusion.Maui.Toolkit.Hosting;
+using MauiAppBrownianMotion.Utilities;
 
 #if WINDOWS
 using Microsoft.UI;
@@ -32,7 +33,10 @@ namespace MauiAppBrownianMotion
             builder.Services.AddSingleton<ModalErrorHandler>();
             builder.Services.AddSingleton<INavigationService, NavigationService>();
 
-            return builder.Build();
+            var app = builder.Build();
+            ServiceHelper.Initialize(app.Services);
+
+            return app;
         }
     }
 }
