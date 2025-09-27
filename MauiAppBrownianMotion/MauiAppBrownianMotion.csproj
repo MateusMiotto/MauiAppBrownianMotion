@@ -71,5 +71,15 @@
 		</MauiXaml>
 	</ItemGroup>
 
+	<ItemGroup>
+		<Folder Include="Models\" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Update="Views\MainPage.xaml.cs">
+			<DependentUpon>MainPage.xaml</DependentUpon>
+		</Compile>
+	</ItemGroup>
+
 
 </Project>
