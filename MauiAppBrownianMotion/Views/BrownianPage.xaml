@@ -160,7 +160,7 @@
                         Style="{StaticResource NumericEntryStyle}"
                         Text="{Binding RetornoPercentInput}">
                         <Entry.Behaviors>
-                            <behaviors:NumericEntryBehavior />
+                            <behaviors:NumericEntryBehavior AllowNegative="True" />
                         </Entry.Behaviors>
                     </Entry>
                     <Label
@@ -266,7 +266,7 @@
                             Style="{StaticResource NarrowEntryStyle}"
                             Text="{Binding RetornoPercentInput}">
                             <Entry.Behaviors>
-                                <behaviors:NumericEntryBehavior />
+                                <behaviors:NumericEntryBehavior AllowNegative="True" />
                             </Entry.Behaviors>
                         </Entry>
                     </VerticalStackLayout>
@@ -311,7 +311,7 @@
                     <Button
                         Background="Red"
                         Command="{Binding CancelarCommand}"
-                        IsEnabled="{Binding CanCancelar, Converter={toolkit:InvertedBoolConverter}}"
+                        IsEnabled="{Binding CanCancelar}"
                         Text="Cancelar" />
                 </HorizontalStackLayout>
             </VerticalStackLayout>

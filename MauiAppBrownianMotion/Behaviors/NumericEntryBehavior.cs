@@ -4,10 +4,22 @@ namespace MauiAppBrownianMotion.Behaviors;
 
 /// <summary>
 /// Behavior para restringir o Entry a aceitar apenas dígitos e um único separador decimal da cultura atual.
-/// Não permite sinal negativo (requisito: apenas números).
+/// Permite opcionalmente sinal negativo (configurável por AllowNegative).
 /// </summary>
 public class NumericEntryBehavior : Behavior<Entry>
 {
+    public static readonly BindableProperty AllowNegativeProperty = BindableProperty.Create(
+        nameof(AllowNegative), typeof(bool), typeof(NumericEntryBehavior), false);
+
+    /// <summary>
+    /// Quando true permite um único sinal '-' apenas na primeira posição.
+    /// </summary>
+    public bool AllowNegative
+    {
+        get => (bool)GetValue(AllowNegativeProperty);
+        set => SetValue(AllowNegativeProperty, value);
+    }
+
     protected override void OnAttachedTo(Entry entry)
     {
         entry.TextChanged += OnTextChanged;
@@ -28,6 +40,8 @@ public class NumericEntryBehavior : Behavior<Entry>
         var decSep = System.Globalization.CultureInfo.CurrentCulture.NumberFormat.NumberDecimalSeparator;
         var sb = new StringBuilder(e.NewTextValue.Length);
         bool hasSep = false;
+        bool hasSign = false;
+        int pos = 0;
 
         foreach (var ch in e.NewTextValue)
         {
@@ -40,14 +54,19 @@ public class NumericEntryBehavior : Behavior<Entry>
                 sb.Append(decSep);
                 hasSep = true;
             }
+            else if (AllowNegative && ch == '-' && pos == 0 && !hasSign)
+            {
+                sb.Append('-');
+                hasSign = true;
+            }
             // ignora qualquer outro caractere
+            pos++;
         }
 
         var sanitized = sb.ToString();
         if (sanitized != e.NewTextValue)
         {
-            // reposiciona texto somente se mudou para evitar loops
-            entry.Text = sanitized;
+            entry.Text = sanitized; // atualiza somente se houve alteração
         }
     }
 }

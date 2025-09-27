@@ -10,6 +10,8 @@ namespace MauiAppBrownianMotion.ViewModels
 {
     public partial class BrownianViewModel : ObservableObject, INavigationViewModel
     {
+        public const double PriceFloor = 0.01; // piso mínimo para preço simulado
+
         #region Numeric (parsed) properties
         [ObservableProperty] double precoInicial = 100;
         [ObservableProperty] double volatilidadePercent = 20;
@@ -317,12 +319,13 @@ namespace MauiAppBrownianMotion.ViewModels
         {
             error = null;
             var culture = CultureInfo.CurrentCulture;
-            bool ParseDouble(string? txt, string field, bool mustBePositive, out double value, out string? err)
+
+            bool ParseDouble(string? txt, string field, bool mustBePositive, bool allowNegative, out double value, out string? err)
             {
                 value = 0; err = null;
                 if (string.IsNullOrWhiteSpace(txt)) { err = $"Campo '{field}' está vazio"; return false; }
                 if (!double.TryParse(txt, NumberStyles.Float, culture, out value)) { err = $"Campo '{field}' inválido"; return false; }
-                if (value < 0) { err = $"Campo '{field}' não pode ser negativo"; return false; }
+                if (!allowNegative && value < 0) { err = $"Campo '{field}' não pode ser negativo"; return false; }
                 if (mustBePositive && value <= 0) { err = $"Campo '{field}' deve ser maior que 0"; return false; }
                 return true;
             }
@@ -335,11 +338,14 @@ namespace MauiAppBrownianMotion.ViewModels
                 if (value < min) { err = $"Campo '{field}' deve ser >= {min}"; return false; }
                 return true;
             }
-            if (!ParseDouble(PrecoInicialInput, "Preço inicial", true, out var preco, out var e1)) { if (canShowError) error = e1; return false; }
-            if (!ParseDouble(VolatilidadePercentInput, "Volatilidade", false, out var vol, out var e2)) { if (canShowError) error = e2; return false; }
-            if (!ParseDouble(RetornoPercentInput, "Retorno", false, out var ret, out var e3)) { if (canShowError) error = e3; return false; }
+
+            if (!ParseDouble(PrecoInicialInput, "Preço inicial", mustBePositive: true, allowNegative: false, out var preco, out var e1)) { if (canShowError) error = e1; return false; }
+            if (!ParseDouble(VolatilidadePercentInput, "Volatilidade", mustBePositive: false, allowNegative: false, out var vol, out var e2)) { if (canShowError) error = e2; return false; }
+            // Retorno pode ser negativo (ex: drift negativo)
+            if (!ParseDouble(RetornoPercentInput, "Retorno", mustBePositive: false, allowNegative: true, out var ret, out var e3)) { if (canShowError) error = e3; return false; }
             if (!ParseInt(TempoDiasInput, "Tempo (dias)", 1, out var dias, out var e4)) { if (canShowError) error = e4; return false; }
             if (!ParseInt(NumeroSimulacoesInput, "Nº simulações", 1, out var sims, out var e5)) { if (canShowError) error = e5; return false; }
+
             if (canShowError)
             {
                 PrecoInicial = preco;
@@ -359,7 +365,7 @@ namespace MauiAppBrownianMotion.ViewModels
         {
             var rand = s_random.Value!;
             double[] prices = new double[numDays];
-            prices[0] = initialPrice;
+            prices[0] = Math.Max(initialPrice, PriceFloor);
             for (int i = 1; i < numDays; i++)
             {
                 token.ThrowIfCancellationRequested();
@@ -367,7 +373,9 @@ namespace MauiAppBrownianMotion.ViewModels
                 double u2 = 1.0 - rand.NextDouble();
                 double z = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
                 double retornoDiario = mean + sigma * z;
-                prices[i] = prices[i - 1] * Math.Exp(retornoDiario);
+                double next = prices[i - 1] * Math.Exp(retornoDiario);
+                if (next < PriceFloor) next = PriceFloor;
+                prices[i] = next;
             }
             return prices;
         }

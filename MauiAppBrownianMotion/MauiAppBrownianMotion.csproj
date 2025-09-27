@@ -62,9 +62,6 @@
 		<MauiXaml Update="Views\BrownianPage.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
-		<MauiXaml Update="Views\Controls\AddButton.xaml">
-			<Generator>MSBuild:Compile</Generator>
-		</MauiXaml>
 		<MauiXaml Update="Resources\Styles\AppStyles.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</MauiXaml>
