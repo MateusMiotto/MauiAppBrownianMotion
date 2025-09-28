@@ -46,7 +46,7 @@
             x:Name="ChartHost"
             Grid.Row="0"
             Grid.Column="0"
-            RowDefinitions="auto,*">
+            RowDefinitions="auto,*,auto">
             <!--  Barra de controle de zoom  -->
             <Border
                 x:Name="ZoomOverlay"
@@ -104,6 +104,16 @@
                     <TapGestureRecognizer NumberOfTapsRequired="2" Tapped="OnChartDoubleTap" />
                 </GraphicsView.GestureRecognizers>
             </GraphicsView>
+            <!--  Slider de navegação horizontal (pan). Visível somente quando zoom > 1  -->
+            <Slider
+                x:Name="NavSlider"
+                Grid.Row="2"
+                Margin="40,10,0,2"
+                HorizontalOptions="Fill"
+                IsVisible="False"
+                Maximum="1"
+                Minimum="0"
+                ValueChanged="OnNavSliderValueChanged" />
         </Grid>
 
         <!--  Painel (modo Wide)  -->

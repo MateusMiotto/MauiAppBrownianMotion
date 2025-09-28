@@ -191,6 +191,9 @@ namespace MauiAppBrownianMotion.Models
 
             // Ticks Y
             var yTicks = GenerateNiceTicks(visMin, visMax, TargetYTicks);
+            // CLAMP: remove ticks fora do range visível para evitar linhas desenhadas abaixo/acima do plot
+            const double clampEps = 1e-9;
+            yTicks = yTicks.Where(t => t >= visMin - clampEps && t <= visMax + clampEps).ToList();
 
             // Medição de largura máxima dos rótulos Y para ajustar Padding.Left
             IFont baseFont = Microsoft.Maui.Graphics.Font.Default;
@@ -249,7 +252,10 @@ namespace MauiAppBrownianMotion.Models
             // Linhas horizontais alinhadas ao mesmo mapeamento usado para séries/labels
             foreach (var yt in yTicks)
             {
+                // garantia extra caso algo passe pelo filtro
+                if (yt < visMin || yt > visMax) continue;
                 float y = ValueToY(yt, visMin, visMax, plot);
+                if (y < plot.Top - 1 || y > plot.Bottom + 1) continue;
                 canvas.DrawLine(plot.Left, AlignPx(y), plot.Right, AlignPx(y));
             }
             // Linhas verticais: usar visibleCount para que a última chegue exatamente ao fim
@@ -282,7 +288,9 @@ namespace MauiAppBrownianMotion.Models
             canvas.FontColor = AxisColor;
             foreach (var yt in yTicks)
             {
+                if (yt < visMin || yt > visMax) continue; // evita label fora
                 float y = ValueToY(yt, visMin, visMax, plot);
+                if (y < plot.Top - 1 || y > plot.Bottom + 1) continue;
                 canvas.DrawLine(plot.Left - 5, AlignPx(y), plot.Left, AlignPx(y));
                 string label = FormatY(yt, visMin, visMax);
                 var rect = new RectF(0, y - 8, plot.Left - 7, 16);

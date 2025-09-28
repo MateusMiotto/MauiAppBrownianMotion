@@ -36,6 +36,7 @@ namespace MauiAppBrownianMotion.Pages
             vm.PropertyChanged += Vm_PropertyChanged; // observar IsBackgroundWindow
             ApplyInteractionMode();
             UpdateZoomLabel();
+            UpdateNavSlider();
 #if WINDOWS
             Chart.HandlerChanged += (_, _) => AttachWindowsEvents();
 #endif
@@ -59,6 +60,8 @@ namespace MauiAppBrownianMotion.Pages
             // Esconde overlay de zoom
             var overlay = this.FindByName<Border>("ZoomOverlay");
             if (overlay != null) overlay.IsVisible = !disableInteractions;
+            var navSlider = this.FindByName<Slider>("NavSlider");
+            if (navSlider != null) navSlider.IsEnabled = !disableInteractions;
 
             // Reseta zoom/pan se desabilitando
             if (disableInteractions)
@@ -67,8 +70,7 @@ namespace MauiAppBrownianMotion.Pages
                 drawable.XPan = 0;
                 drawable.SetHover(null);
             }
-
-            // Gestos XAML continuarão anexados, mas saem precocemente se desabilitado
+            UpdateNavSlider();
         }
 
         private void BrownianPage_SizeChanged(object? sender, EventArgs e)
@@ -136,6 +138,7 @@ namespace MauiAppBrownianMotion.Pages
             drawable.XPan = drawable.XZoom <= 1 ? 0 : Math.Clamp(newPan, 0, 1);
             Chart.Invalidate();
             UpdateZoomLabel();
+            UpdateNavSlider();
         }
 
         void ApplyPanDelta(double deltaPixels, double widthPixels)
@@ -147,6 +150,7 @@ namespace MauiAppBrownianMotion.Pages
             double newPan = drawable.XPan + fracDelta;
             drawable.XPan = Math.Clamp(newPan, 0, 1);
             Chart.Invalidate();
+            UpdateNavSliderPositionOnly();
         }
 
         void ResetZoom()
@@ -155,6 +159,7 @@ namespace MauiAppBrownianMotion.Pages
             drawable.XPan = 0;
             Chart.Invalidate();
             UpdateZoomLabel();
+            UpdateNavSlider();
         }
 
         void OnZoomInClicked(object? sender, EventArgs e)
@@ -186,6 +191,36 @@ namespace MauiAppBrownianMotion.Pages
                 if (z < 1.0001) z = 1;
                 lbl.Text = z >= 10 ? $"{z:0}x" : z >= 2 ? $"{z:0.#}x" : $"{z:0.##}x";
             }
+        }
+
+        void UpdateNavSlider()
+        {
+            var slider = this.FindByName<Slider>("NavSlider");
+            if (slider == null) return;
+            bool show = drawable.XZoom > 1.0001 && !ViewModel.IsBackgroundWindow;
+            slider.IsVisible = show;
+            if (!show) return;
+            slider.ValueChanged -= OnNavSliderValueChanged;
+            slider.Value = drawable.XPan;
+            slider.ValueChanged += OnNavSliderValueChanged;
+        }
+
+        void UpdateNavSliderPositionOnly()
+        {
+            var slider = this.FindByName<Slider>("NavSlider");
+            if (slider == null) return;
+            if (!slider.IsVisible) return;
+            slider.ValueChanged -= OnNavSliderValueChanged;
+            slider.Value = drawable.XPan;
+            slider.ValueChanged += OnNavSliderValueChanged;
+        }
+
+        void OnNavSliderValueChanged(object? sender, ValueChangedEventArgs e)
+        {
+            if (drawable.XZoom <= 1) return; // ignorar se não está em zoom
+            if (Math.Abs(drawable.XPan - e.NewValue) < 1e-6) return;
+            drawable.XPan = Math.Clamp(e.NewValue, 0, 1);
+            Chart.Invalidate();
         }
 
 #if WINDOWS
