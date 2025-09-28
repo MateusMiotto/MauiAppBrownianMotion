@@ -10,6 +10,8 @@ namespace MauiAppBrownianMotion.ViewModels
 {
     public partial class BrownianViewModel : ObservableObject, INavigationViewModel
     {
+        public const double PriceFloor = 0.01; // piso mínimo para preço simulado
+
         #region Numeric (parsed) properties
         [ObservableProperty] double precoInicial = 100;
         [ObservableProperty] double volatilidadePercent = 20;
@@ -21,7 +23,7 @@ namespace MauiAppBrownianMotion.ViewModels
         #region Input (text) properties
         [ObservableProperty] string precoInicialInput = "100";
         [ObservableProperty] string volatilidadePercentInput = "20";
-        [ObservableProperty] string retornoPercentInput = "1";
+        [ObservableProperty] string retornoPercentInput = "-0,5";
         [ObservableProperty] string tempoDiasInput = "252";
         [ObservableProperty] string numeroSimulacoesInput = "1";
         #endregion
@@ -153,6 +155,7 @@ namespace MauiAppBrownianMotion.ViewModels
             }
         }
 
+        // Verifica se a simulação é considerada "pesada" (muitos pontos) e oferece abrir em nova janela para processamento paralelo sem bloquear a UI principal.
         private async Task<bool> ValidateHeavy()
         {
             int points = NumeroSimulacoes * TempoDias;
@@ -188,31 +191,26 @@ namespace MauiAppBrownianMotion.ViewModels
 
         #region Downsampling config
         public const int MaxChartPoints = 10_000;
+        // Reduz o número de pontos de uma série via amostragem uniforme com interpolação linear para preservar tendência e minimizar aliasing gráfico.
         static double[] Downsample(double[] source, int maxPoints)
         {
-            // Mantém original se já pequeno
             if (source.Length <= maxPoints) return source;
             if (maxPoints < 2) return new[] { source[^1] };
-
-            // Amostragem em passos uniformes com interpolação linear para reduzir aliasing
-            // target[i] representa o valor interpolado na posição fracionária correspondente.
             double[] target = new double[maxPoints];
             int lastIndex = source.Length - 1;
-            double scale = lastIndex / (double)(maxPoints - 1); // fator entre índices
-
+            double scale = lastIndex / (double)(maxPoints - 1);
             target[0] = source[0];
             for (int i = 1; i < maxPoints - 1; i++)
             {
-                double pos = i * scale;          // posição fracionária no array original
-                int idx = (int)pos;              // índice inferior
-                double frac = pos - idx;         // parte fracionária
+                double pos = i * scale;
+                int idx = (int)pos;
+                double frac = pos - idx;
                 if (idx >= lastIndex)
                 {
                     target[i] = source[lastIndex];
                 }
                 else
                 {
-                    // Interpolação linear entre idx e idx+1
                     double v0 = source[idx];
                     double v1 = source[idx + 1];
                     target[i] = v0 + (v1 - v0) * frac;
@@ -224,6 +222,7 @@ namespace MauiAppBrownianMotion.ViewModels
         #endregion
 
         #region Simulation execution
+        // Orquestra a simulação: prepara cancelamento, valida entradas, executa geração em thread pool, faz downsampling, atualiza Paths e estado de processamento com segurança para a UI.
         async Task RunSimulationAsync()
         {
             simulationCts?.Cancel();
@@ -262,7 +261,6 @@ namespace MauiAppBrownianMotion.ViewModels
                             result[i] = Downsample(result[i], MaxChartPoints);
                 }
 
-                // Permite UI respirar antes de redesenhar grande lote
                 await Task.Yield();
 
                 if (!token.IsCancellationRequested)
@@ -285,6 +283,7 @@ namespace MauiAppBrownianMotion.ViewModels
             }
         }
 
+        // Gera múltiplos caminhos: escolhe execução sequencial para lotes pequenos e paraleliza (Parallel.For) para grandes volumes, reutilizando placeholders para evitar realloc.
         static List<double[]> GeneratePaths(int sims, int dias, double sigmaD, double muD, double precoInicial, CancellationToken token)
         {
             long totalPoints = (long)sims * dias;
@@ -294,35 +293,36 @@ namespace MauiAppBrownianMotion.ViewModels
                 for (int k = 0; k < sims; k++)
                 {
                     token.ThrowIfCancellationRequested();
-                    listSeq.Add(GenerateBromnianMotion(sigmaD, muD, precoInicial, dias, token));
+                    listSeq.Add(GenerateBrownianMotion(sigmaD, muD, precoInicial, dias, token));
                 }
                 return listSeq;
             }
 
-            // Pré-aloca lista com capacidade exata e placeholders para evitar cópia extra (antes: array + ToList()).
             var list = new List<double[]>(sims);
-            for (int i = 0; i < sims; i++) list.Add(Array.Empty<double>()); // placeholders
+            for (int i = 0; i < sims; i++) list.Add(Array.Empty<double>());
 
             int maxParallel = Math.Max(1, Environment.ProcessorCount - 1);
             Parallel.For(0, sims, new ParallelOptions { CancellationToken = token, MaxDegreeOfParallelism = maxParallel }, i =>
             {
-                list[i] = GenerateBromnianMotion(sigmaD, muD, precoInicial, dias, token);
+                list[i] = GenerateBrownianMotion(sigmaD, muD, precoInicial, dias, token);
             });
             return list;
         }
         #endregion
 
         #region Validation
+        // Faz parsing e validação dos campos de entrada (strings) convertendo para propriedades numéricas apenas quando solicitado (canShowError = true) para evitar travar digitação.
         bool ValidateInputs(bool canShowError, out string? error)
         {
             error = null;
             var culture = CultureInfo.CurrentCulture;
-            bool ParseDouble(string? txt, string field, bool mustBePositive, out double value, out string? err)
+
+            bool ParseDouble(string? txt, string field, bool mustBePositive, bool allowNegative, out double value, out string? err)
             {
                 value = 0; err = null;
                 if (string.IsNullOrWhiteSpace(txt)) { err = $"Campo '{field}' está vazio"; return false; }
                 if (!double.TryParse(txt, NumberStyles.Float, culture, out value)) { err = $"Campo '{field}' inválido"; return false; }
-                if (value < 0) { err = $"Campo '{field}' não pode ser negativo"; return false; }
+                if (!allowNegative && value < 0) { err = $"Campo '{field}' não pode ser negativo"; return false; }
                 if (mustBePositive && value <= 0) { err = $"Campo '{field}' deve ser maior que 0"; return false; }
                 return true;
             }
@@ -335,11 +335,14 @@ namespace MauiAppBrownianMotion.ViewModels
                 if (value < min) { err = $"Campo '{field}' deve ser >= {min}"; return false; }
                 return true;
             }
-            if (!ParseDouble(PrecoInicialInput, "Preço inicial", true, out var preco, out var e1)) { if (canShowError) error = e1; return false; }
-            if (!ParseDouble(VolatilidadePercentInput, "Volatilidade", false, out var vol, out var e2)) { if (canShowError) error = e2; return false; }
-            if (!ParseDouble(RetornoPercentInput, "Retorno", false, out var ret, out var e3)) { if (canShowError) error = e3; return false; }
+
+            if (!ParseDouble(PrecoInicialInput, "Preço inicial", mustBePositive: true, allowNegative: false, out var preco, out var e1)) { if (canShowError) error = e1; return false; }
+            if (!ParseDouble(VolatilidadePercentInput, "Volatilidade", mustBePositive: false, allowNegative: false, out var vol, out var e2)) { if (canShowError) error = e2; return false; }
+            // Retorno pode ser negativo (ex: drift negativo)
+            if (!ParseDouble(RetornoPercentInput, "Retorno", mustBePositive: false, allowNegative: true, out var ret, out var e3)) { if (canShowError) error = e3; return false; }
             if (!ParseInt(TempoDiasInput, "Tempo (dias)", 1, out var dias, out var e4)) { if (canShowError) error = e4; return false; }
             if (!ParseInt(NumeroSimulacoesInput, "Nº simulações", 1, out var sims, out var e5)) { if (canShowError) error = e5; return false; }
+
             if (canShowError)
             {
                 PrecoInicial = preco;
@@ -355,11 +358,13 @@ namespace MauiAppBrownianMotion.ViewModels
         #region Simulation helpers
 
         static readonly ThreadLocal<Random> s_random = new(() => new Random(Random.Shared.Next()));
-        public static double[] GenerateBromnianMotion(double sigma, double mean, double initialPrice, int numDays, CancellationToken token)
+        // Gera um caminho de Movimento Browniano Geométrico usando Box-Muller para normal padrão e evolução multiplicativa (preço >= PriceFloor).
+        // TODO Talvez Marsaglia seja mais performatico
+        public static double[] GenerateBrownianMotion(double sigma, double mean, double initialPrice, int numDays, CancellationToken token)
         {
             var rand = s_random.Value!;
             double[] prices = new double[numDays];
-            prices[0] = initialPrice;
+            prices[0] = Math.Max(initialPrice, PriceFloor);
             for (int i = 1; i < numDays; i++)
             {
                 token.ThrowIfCancellationRequested();
@@ -367,13 +372,16 @@ namespace MauiAppBrownianMotion.ViewModels
                 double u2 = 1.0 - rand.NextDouble();
                 double z = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
                 double retornoDiario = mean + sigma * z;
-                prices[i] = prices[i - 1] * Math.Exp(retornoDiario);
+                double next = prices[i - 1] * Math.Exp(retornoDiario);
+                if (next < PriceFloor) next = PriceFloor;
+                prices[i] = next;
             }
             return prices;
         }
         #endregion
 
         #region Helpers
+        // Força atualização de estados de CanExecute e notifica a UI após mudanças que afetam comandos.
         void RaiseCanExecute()
         {
             OnPropertyChanged(nameof(CanGerarSimulacao));

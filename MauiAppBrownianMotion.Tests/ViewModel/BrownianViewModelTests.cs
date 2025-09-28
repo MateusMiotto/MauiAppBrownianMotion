@@ -73,10 +73,10 @@ namespace MauiAppBrownianMotion.Tests.ViewModel
 
         // Confirma série constante quando sigma e retorno são zero (teste curto).
         [Fact]
-        public void GenerateBromnianMotion_MantemPrecoConstante_QuandoSemRetornoENemVolatilidade()
+        public void GenerateBrownianMotion_MantemPrecoConstante_QuandoSemRetornoENemVolatilidade()
         {
             double precoInicial = 150;
-            double[] serie = BrownianViewModel.GenerateBromnianMotion(0, 0, precoInicial, 10, CancellationToken.None);
+            double[] serie = BrownianViewModel.GenerateBrownianMotion(0, 0, precoInicial, 10, CancellationToken.None);
 
             Assert.Equal(10, serie.Length);
             Assert.All(serie, valor => Assert.Equal(precoInicial, valor, precision: 5));
@@ -84,13 +84,13 @@ namespace MauiAppBrownianMotion.Tests.ViewModel
 
         // Garante lançamento de OperationCanceledException quando token cancelado.
         [Fact]
-        public void GenerateBromnianMotion_LancaException_QuandoCancelado()
+        public void GenerateBrownianMotion_LancaException_QuandoCancelado()
         {
             using var cts = new CancellationTokenSource();
             cts.Cancel();
 
             Assert.Throws<OperationCanceledException>(() =>
-                BrownianViewModel.GenerateBromnianMotion(0.2, 0.1, 100, 5, cts.Token));
+                BrownianViewModel.GenerateBrownianMotion(0.2, 0.1, 100, 5, cts.Token));
         }
 
         // Verifica que validação sem commit não altera propriedades numéricas internas.
@@ -124,29 +124,29 @@ namespace MauiAppBrownianMotion.Tests.ViewModel
 
         // Garante que a simulação gera apenas valores positivos.
         [Fact]
-        public void GenerateBromnianMotion_DeveGerarValoresPositivos()
+        public void GenerateBrownianMotion_DeveGerarValoresPositivos()
         {
-            var serie = BrownianViewModel.GenerateBromnianMotion(0.2, 0.05, 100, 50, CancellationToken.None);
+            var serie = BrownianViewModel.GenerateBrownianMotion(0.2, 0.05, 100, 50, CancellationToken.None);
             Assert.Equal(50, serie.Length);
             Assert.All(serie, v => Assert.True(v > 0));
         }
 
         // Confirma série constante quando sigma e mean são zero (variação de cenário).
         [Fact]
-        public void GenerateBromnianMotion_Constante_QuandoSigmaEMeanZero()
+        public void GenerateBrownianMotion_Constante_QuandoSigmaEMeanZero()
         {
-            var serie = BrownianViewModel.GenerateBromnianMotion(0, 0, 150, 20, CancellationToken.None);
+            var serie = BrownianViewModel.GenerateBrownianMotion(0, 0, 150, 20, CancellationToken.None);
             Assert.All(serie, v => Assert.Equal(150, v, 5));
         }
 
         // Verifica novamente cancelamento com parâmetros diferentes.
         [Fact]
-        public void GenerateBromnianMotion_Lanca_OperationCanceled()
+        public void GenerateBrownianMotion_Lanca_OperationCanceled()
         {
             using var cts = new CancellationTokenSource();
             cts.Cancel();
             Assert.Throws<OperationCanceledException>(() =>
-                BrownianViewModel.GenerateBromnianMotion(0.1, 0.02, 100, 10, cts.Token));
+                BrownianViewModel.GenerateBrownianMotion(0.1, 0.02, 100, 10, cts.Token));
         }
 
         // Confirma que o limite dinâmico depende da contagem de processadores.
@@ -171,6 +171,35 @@ namespace MauiAppBrownianMotion.Tests.ViewModel
         {
             int expected = (Environment.ProcessorCount - 1) * 375_000;
             Assert.Equal(expected, BrownianViewModel.HeavyThresholdPoints);
+        }
+
+        // Aceita retorno negativo nas simulações.
+        [Fact]
+        public void CanGerarSimulacao_AceitaRetornoNegativo()
+        {
+            var vm = new BrownianViewModel
+            {
+                PrecoInicialInput = "100",
+                VolatilidadePercentInput = "25",
+                RetornoPercentInput = "-3", // negativo
+                TempoDiasInput = "100",
+                NumeroSimulacoesInput = "5"
+            };
+
+            Assert.True(vm.CanGerarSimulacao);
+        }
+
+        // Garante que simulação com retorno negativo tende a decair.
+        [Fact]
+        public void GenerateBrownianMotion_ComRetornoNegativo_TendeADecair()
+        {
+            // Drift negativo pronunciado para aumentar chance de queda média
+            double[] serie = BrownianViewModel.GenerateBrownianMotion(0.05, -0.20, 100, 500, CancellationToken.None);
+            Assert.Equal(500, serie.Length);
+            // Média dos últimos 50 pontos deve ser menor que média dos 50 iniciais (tendência de queda)
+            double mediaInicio = serie.Take(50).Average();
+            double mediaFim = serie.Skip(serie.Length - 50).Average();
+            Assert.True(mediaFim < mediaInicio);
         }
     }
 }
