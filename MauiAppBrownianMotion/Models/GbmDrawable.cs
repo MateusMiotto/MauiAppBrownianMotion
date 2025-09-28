@@ -548,11 +548,6 @@ namespace MauiAppBrownianMotion.Models
             return NumberFormatUtils.FormatAxisY(v, min, max);
         }
 
-        static string AbbreviateNumber(double value)
-        {
-            return NumberFormatUtils.Abbreviate(value);
-        }
-
         static string FormatPriceTooltip(double value)
         {
             return NumberFormatUtils.FormatPriceCompact(value);
