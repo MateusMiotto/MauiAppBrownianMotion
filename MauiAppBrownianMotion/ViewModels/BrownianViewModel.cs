@@ -23,7 +23,7 @@ namespace MauiAppBrownianMotion.ViewModels
         #region Input (text) properties
         [ObservableProperty] string precoInicialInput = "100";
         [ObservableProperty] string volatilidadePercentInput = "20";
-        [ObservableProperty] string retornoPercentInput = "1";
+        [ObservableProperty] string retornoPercentInput = "-0,5";
         [ObservableProperty] string tempoDiasInput = "252";
         [ObservableProperty] string numeroSimulacoesInput = "1";
         #endregion
