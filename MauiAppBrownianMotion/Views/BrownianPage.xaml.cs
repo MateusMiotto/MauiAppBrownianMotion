@@ -2,6 +2,9 @@ using MauiAppBrownianMotion.Models;
 using MauiAppBrownianMotion.Views.Base;
 #if WINDOWS
 using Microsoft.UI.Xaml.Input;
+using System.Text;
+using System.Globalization;
+using MauiAppBrownianMotion.Utilities;
 #endif
 
 namespace MauiAppBrownianMotion.Pages
@@ -10,17 +13,13 @@ namespace MauiAppBrownianMotion.Pages
     {
         private readonly GbmDrawable drawable = new();
         private const double WideThreshold = 1100; // largura mínima para painel lateral
-
-        // Estado de gesto touch
         double initialZoom = 1.0;
         bool pinchInProgress = false;
-        double lastPanX; // acumular delta horizontal
-
+        double lastPanX;
 #if WINDOWS
         bool isMousePanning = false;
         double lastMouseX;
 #endif
-
         BrownianViewModel ViewModel => (BindingContext as BrownianViewModel)!;
 
         public BrownianPage()
@@ -28,12 +27,11 @@ namespace MauiAppBrownianMotion.Pages
             InitializeComponent();
             this.InjectViewModel();
             var vm = ViewModel ?? throw new InvalidOperationException("ViewModel não pode ser nulo");
-
             drawable.GetPaths = () => vm.Paths;
             Chart.Drawable = drawable;
             vm.RedrawRequested += () => Chart.Invalidate();
             SizeChanged += BrownianPage_SizeChanged;
-            vm.PropertyChanged += Vm_PropertyChanged; // observar IsBackgroundWindow
+            vm.PropertyChanged += Vm_PropertyChanged;
             ApplyInteractionMode();
             UpdateZoomLabel();
             UpdateNavSlider();
@@ -259,17 +257,26 @@ namespace MauiAppBrownianMotion.Pages
         void OnPointerPressed(object sender, PointerRoutedEventArgs e)
         {
             var pt = e.GetCurrentPoint((Microsoft.UI.Xaml.UIElement)sender);
-            if (!ViewModel.IsBackgroundWindow)
+            if (ViewModel.IsBackgroundWindow) return;
+
+            // Clique direito: mostrar médias por série
+            if (pt.Properties.IsRightButtonPressed)
             {
-                if (pt.Properties.IsMiddleButtonPressed || pt.Properties.IsRightButtonPressed || (pt.Properties.IsLeftButtonPressed && drawable.XZoom > 1))
-                {
-                    isMousePanning = true;
-                    lastMouseX = pt.Position.X;
-                    e.Handled = true;
-                }
-                drawable.SetHover(new PointF((float)pt.Position.X, (float)pt.Position.Y));
-                Chart.Invalidate();
+                ShowSeriesMeans();
+                e.Handled = true;
+                return; // não inicia pan com botão direito
             }
+
+            // Pan com botão do meio ou (botão esquerdo + zoom ativo)
+            if (pt.Properties.IsMiddleButtonPressed || (pt.Properties.IsLeftButtonPressed && drawable.XZoom > 1))
+            {
+                isMousePanning = true;
+                lastMouseX = pt.Position.X;
+                e.Handled = true;
+            }
+
+            drawable.SetHover(new PointF((float)pt.Position.X, (float)pt.Position.Y));
+            Chart.Invalidate();
         }
 
         void OnPointerReleased(object sender, PointerRoutedEventArgs e)
@@ -280,17 +287,16 @@ namespace MauiAppBrownianMotion.Pages
         void OnPointerMoved(object sender, PointerRoutedEventArgs e)
         {
             var pt = e.GetCurrentPoint((Microsoft.UI.Xaml.UIElement)sender);
-            if (!ViewModel.IsBackgroundWindow)
+            if (ViewModel.IsBackgroundWindow) return;
+
+            drawable.SetHover(new PointF((float)pt.Position.X, (float)pt.Position.Y));
+            Chart.Invalidate();
+            if (isMousePanning)
             {
-                drawable.SetHover(new PointF((float)pt.Position.X, (float)pt.Position.Y));
-                Chart.Invalidate();
-                if (isMousePanning)
-                {
-                    double delta = pt.Position.X - lastMouseX;
-                    lastMouseX = pt.Position.X;
-                    ApplyPanDelta(delta, Chart.Width);
-                    e.Handled = true;
-                }
+                double delta = pt.Position.X - lastMouseX;
+                lastMouseX = pt.Position.X;
+                ApplyPanDelta(delta, Chart.Width);
+                e.Handled = true;
             }
         }
 
@@ -298,6 +304,50 @@ namespace MauiAppBrownianMotion.Pages
         {
             drawable.SetHover(null);
             Chart.Invalidate();
+        }
+
+        void ShowSeriesMeans()
+        {
+            try
+            {
+                var paths = ViewModel.Paths;
+                if (paths == null || paths.Count == 0)
+                {
+                    _ = MainThread.InvokeOnMainThreadAsync(() => DisplayAlert("Médias", "Nenhuma série carregada.", "OK"));
+                    return;
+                }
+                int maxLines = 100;
+                var sb = new StringBuilder();
+                double globalSum = 0; long globalCount = 0;
+                for (int i = 0; i < paths.Count; i++)
+                {
+                    var arr = paths[i];
+                    if (arr == null || arr.Length == 0) continue;
+                    double sum = 0;
+                    for (int k = 0; k < arr.Length; k++) sum += arr[k];
+                    double avg = sum / arr.Length;
+                    globalSum += sum; globalCount += arr.Length;
+                    if (sb.Length < 6000)
+                        sb.AppendLine($"Série {i + 1}: média = {NumberFormatUtils.FormatPriceCompact(avg)}");
+                    if (i + 1 >= maxLines && i + 1 < paths.Count)
+                    {
+                        sb.AppendLine($"... (+{paths.Count - maxLines} séries)");
+                        break;
+                    }
+                }
+                if (globalCount > 0)
+                {
+                    sb.AppendLine();
+                    sb.AppendLine($"Média agregada: {NumberFormatUtils.FormatPriceCompact(globalSum / globalCount)}");
+                }
+                string text = sb.ToString();
+                if (string.IsNullOrWhiteSpace(text)) text = "Sem dados válidos.";
+                _ = MainThread.InvokeOnMainThreadAsync(() => DisplayAlert("Média por Série", text, "OK"));
+            }
+            catch (Exception ex)
+            {
+                _ = MainThread.InvokeOnMainThreadAsync(() => DisplayAlert("Erro", ex.Message, "OK"));
+            }
         }
 #endif
     }

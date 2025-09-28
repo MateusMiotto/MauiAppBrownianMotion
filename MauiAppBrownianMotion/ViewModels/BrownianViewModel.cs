@@ -359,6 +359,7 @@ namespace MauiAppBrownianMotion.ViewModels
 
         static readonly ThreadLocal<Random> s_random = new(() => new Random(Random.Shared.Next()));
         // Gera um caminho de Movimento Browniano Geométrico usando Box-Muller para normal padrão e evolução multiplicativa (preço >= PriceFloor).
+        // TODO Talvez Marsaglia seja mais performatico
         public static double[] GenerateBrownianMotion(double sigma, double mean, double initialPrice, int numDays, CancellationToken token)
         {
             var rand = s_random.Value!;

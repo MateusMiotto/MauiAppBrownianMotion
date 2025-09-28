@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.Linq;
+using MauiAppBrownianMotion.Utilities;
 
 namespace MauiAppBrownianMotion.Models
 {
@@ -544,45 +545,17 @@ namespace MauiAppBrownianMotion.Models
         // Formata rótulos Y escolhendo precisão adaptativa conforme faixa de valores.
         static string FormatY(double v, double min, double max)
         {
-            double range = Math.Abs(max - min);
-            double absMax = Math.Max(Math.Abs(min), Math.Abs(max));
-            if (absMax >= 1_000) return AbbreviateNumber(v);
-            if (range < 1e-6) return v.ToString("0.####");
-            if (range < 0.01) return v.ToString("0.####");
-            if (range < 0.1) return v.ToString("0.###");
-            if (range < 1) return v.ToString("0.##");
-            if (range < 10) return v.ToString("0.##");
-            if (range < 100) return v.ToString("0.#");
-            return v.ToString("0");
+            return NumberFormatUtils.FormatAxisY(v, min, max);
         }
 
-        // Abrevia números grandes (K, M, B, T) mantendo legibilidade e precisão relativa razoável.
         static string AbbreviateNumber(double value)
         {
-            double abs = Math.Abs(value);
-            string suffix; double divisor;
-            if (abs >= 1_000_000_000_000) { suffix = "T"; divisor = 1_000_000_000_000d; }
-            else if (abs >= 1_000_000_000) { suffix = "B"; divisor = 1_000_000_000d; }
-            else if (abs >= 1_000_000) { suffix = "M"; divisor = 1_000_000d; }
-            else if (abs >= 1_000) { suffix = "K"; divisor = 1_000d; }
-            else { suffix = string.Empty; divisor = 1d; }
-            double scaled = value / divisor;
-            string format = scaled >= 100 ? "0" : scaled >= 10 ? "0.#" : "0.##";
-            return scaled.ToString(format) + suffix;
+            return NumberFormatUtils.Abbreviate(value);
         }
 
-        // Formata valor de preço para tooltip com abreviação condicional e uso da cultura local.
         static string FormatPriceTooltip(double value)
         {
-            var culture = CultureInfo.CurrentCulture;
-            double abs = Math.Abs(value);
-            if (abs >= 1_000_000_000_000) return $"R$ {value / 1_000_000_000_000d:0.##}T";
-            if (abs >= 1_000_000_000) return $"R$ {value / 1_000_000_000d:0.##}B";
-            if (abs >= 1_000_000) return $"R$ {value / 1_000_000d:0.##}M";
-            if (abs >= 1_000) return $"R$ {value / 1_000d:0.##}K";
-            if (abs >= 1) return $"R$ {value.ToString("N3", culture)}";
-            if (abs >= 0.001) return $"R$ {value.ToString("0.####", culture)}";
-            return $"R$ {value:E2}";
+            return NumberFormatUtils.FormatPriceCompact(value);
         }
         #endregion
     }
