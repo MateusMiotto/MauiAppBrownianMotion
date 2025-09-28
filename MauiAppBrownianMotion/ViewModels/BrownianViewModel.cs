@@ -155,6 +155,7 @@ namespace MauiAppBrownianMotion.ViewModels
             }
         }
 
+        // Verifica se a simulação é considerada "pesada" (muitos pontos) e oferece abrir em nova janela para processamento paralelo sem bloquear a UI principal.
         private async Task<bool> ValidateHeavy()
         {
             int points = NumeroSimulacoes * TempoDias;
@@ -190,31 +191,26 @@ namespace MauiAppBrownianMotion.ViewModels
 
         #region Downsampling config
         public const int MaxChartPoints = 10_000;
+        // Reduz o número de pontos de uma série via amostragem uniforme com interpolação linear para preservar tendência e minimizar aliasing gráfico.
         static double[] Downsample(double[] source, int maxPoints)
         {
-            // Mantém original se já pequeno
             if (source.Length <= maxPoints) return source;
             if (maxPoints < 2) return new[] { source[^1] };
-
-            // Amostragem em passos uniformes com interpolação linear para reduzir aliasing
-            // target[i] representa o valor interpolado na posição fracionária correspondente.
             double[] target = new double[maxPoints];
             int lastIndex = source.Length - 1;
-            double scale = lastIndex / (double)(maxPoints - 1); // fator entre índices
-
+            double scale = lastIndex / (double)(maxPoints - 1);
             target[0] = source[0];
             for (int i = 1; i < maxPoints - 1; i++)
             {
-                double pos = i * scale;          // posição fracionária no array original
-                int idx = (int)pos;              // índice inferior
-                double frac = pos - idx;         // parte fracionária
+                double pos = i * scale;
+                int idx = (int)pos;
+                double frac = pos - idx;
                 if (idx >= lastIndex)
                 {
                     target[i] = source[lastIndex];
                 }
                 else
                 {
-                    // Interpolação linear entre idx e idx+1
                     double v0 = source[idx];
                     double v1 = source[idx + 1];
                     target[i] = v0 + (v1 - v0) * frac;
@@ -226,6 +222,7 @@ namespace MauiAppBrownianMotion.ViewModels
         #endregion
 
         #region Simulation execution
+        // Orquestra a simulação: prepara cancelamento, valida entradas, executa geração em thread pool, faz downsampling, atualiza Paths e estado de processamento com segurança para a UI.
         async Task RunSimulationAsync()
         {
             simulationCts?.Cancel();
@@ -264,7 +261,6 @@ namespace MauiAppBrownianMotion.ViewModels
                             result[i] = Downsample(result[i], MaxChartPoints);
                 }
 
-                // Permite UI respirar antes de redesenhar grande lote
                 await Task.Yield();
 
                 if (!token.IsCancellationRequested)
@@ -287,6 +283,7 @@ namespace MauiAppBrownianMotion.ViewModels
             }
         }
 
+        // Gera múltiplos caminhos: escolhe execução sequencial para lotes pequenos e paraleliza (Parallel.For) para grandes volumes, reutilizando placeholders para evitar realloc.
         static List<double[]> GeneratePaths(int sims, int dias, double sigmaD, double muD, double precoInicial, CancellationToken token)
         {
             long totalPoints = (long)sims * dias;
@@ -301,9 +298,8 @@ namespace MauiAppBrownianMotion.ViewModels
                 return listSeq;
             }
 
-            // Pré-aloca lista com capacidade exata e placeholders para evitar cópia extra.
             var list = new List<double[]>(sims);
-            for (int i = 0; i < sims; i++) list.Add(Array.Empty<double>()); // placeholders
+            for (int i = 0; i < sims; i++) list.Add(Array.Empty<double>());
 
             int maxParallel = Math.Max(1, Environment.ProcessorCount - 1);
             Parallel.For(0, sims, new ParallelOptions { CancellationToken = token, MaxDegreeOfParallelism = maxParallel }, i =>
@@ -315,6 +311,7 @@ namespace MauiAppBrownianMotion.ViewModels
         #endregion
 
         #region Validation
+        // Faz parsing e validação dos campos de entrada (strings) convertendo para propriedades numéricas apenas quando solicitado (canShowError = true) para evitar travar digitação.
         bool ValidateInputs(bool canShowError, out string? error)
         {
             error = null;
@@ -361,6 +358,7 @@ namespace MauiAppBrownianMotion.ViewModels
         #region Simulation helpers
 
         static readonly ThreadLocal<Random> s_random = new(() => new Random(Random.Shared.Next()));
+        // Gera um caminho de Movimento Browniano Geométrico usando Box-Muller para normal padrão e evolução multiplicativa (preço >= PriceFloor).
         public static double[] GenerateBrownianMotion(double sigma, double mean, double initialPrice, int numDays, CancellationToken token)
         {
             var rand = s_random.Value!;
@@ -382,6 +380,7 @@ namespace MauiAppBrownianMotion.ViewModels
         #endregion
 
         #region Helpers
+        // Força atualização de estados de CanExecute e notifica a UI após mudanças que afetam comandos.
         void RaiseCanExecute()
         {
             OnPropertyChanged(nameof(CanGerarSimulacao));

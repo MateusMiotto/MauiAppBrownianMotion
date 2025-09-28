@@ -141,6 +141,7 @@ namespace MauiAppBrownianMotion.Models
         }
         #endregion
 
+        // Desenha o gráfico completo: calcula janela visível (zoom/pan), faixa de valores, gera ticks e delega desenho a métodos especializados (grade, eixos, séries, hover, títulos).
         public void Draw(ICanvas canvas, RectF dirtyRect)
         {
             var paths = GetPaths?.Invoke() ?? new();
@@ -156,68 +157,37 @@ namespace MauiAppBrownianMotion.Models
             if (XZoom < 1)
                 XZoom = 1;
             double visibleFraction = 1.0 / XZoom;
-            if (visibleFraction > 1)
-            {
-                XZoom = 1;
-                visibleFraction = 1;
-            }
+            if (visibleFraction > 1) { XZoom = 1; visibleFraction = 1; }
 
             int visibleCount = (int)Math.Ceiling(fullLen * visibleFraction);
-            if (visibleCount < 2)
-                visibleCount = 2;
-            if (visibleCount > fullLen)
-                visibleCount = fullLen;
+            if (visibleCount < 2) visibleCount = 2;
+            if (visibleCount > fullLen) visibleCount = fullLen;
 
             int maxStart = Math.Max(0, fullLen - visibleCount);
-
-            if (XPan < 0)
-                XPan = 0;
-            if (XPan > 1)
-                XPan = 1;
-
+            if (XPan < 0) XPan = 0;
+            if (XPan > 1) XPan = 1;
             int startIndex = (int)Math.Floor(XPan * maxStart + 1e-9);
-            if (startIndex > maxStart)
-                startIndex = maxStart;
-
+            if (startIndex > maxStart) startIndex = maxStart;
             int endIndex = startIndex + visibleCount - 1;
-            if (endIndex >= fullLen)
-            {
-                endIndex = fullLen - 1;
-                startIndex = Math.Max(0, endIndex - visibleCount + 1);
-            }
-
+            if (endIndex >= fullLen) { endIndex = fullLen - 1; startIndex = Math.Max(0, endIndex - visibleCount + 1); }
             visibleCount = endIndex - startIndex + 1;
-            if (visibleCount < 2)
-            {
-                visibleCount = Math.Min(2, fullLen);
-                startIndex = 0;
-                endIndex = Math.Min(fullLen - 1, 1);
-            }
+            if (visibleCount < 2) { visibleCount = Math.Min(2, fullLen); startIndex = 0; endIndex = Math.Min(fullLen - 1, 1); }
 
             double visMin = double.PositiveInfinity, visMax = double.NegativeInfinity;
             foreach (var s in paths)
             {
-                if (s.Length == 0)
-                    continue;
+                if (s.Length == 0) continue;
                 int localEnd = Math.Min(endIndex, s.Length - 1);
-                if (localEnd < startIndex)
-                    continue;
+                if (localEnd < startIndex) continue;
                 for (int i = startIndex; i <= localEnd; i++)
                 {
                     double v = s[i];
-                    if (v < visMin)
-                        visMin = v;
-                    if (v > visMax)
-                        visMax = v;
+                    if (v < visMin) visMin = v;
+                    if (v > visMax) visMax = v;
                 }
             }
-            if (!double.IsFinite(visMin) || !double.IsFinite(visMax))
-            {
-                visMin = 0;
-                visMax = 1;
-            }
-            if (visMax <= visMin)
-                visMax = visMin + 1;
+            if (!double.IsFinite(visMin) || !double.IsFinite(visMax)) { visMin = 0; visMax = 1; }
+            if (visMax <= visMin) visMax = visMin + 1;
 
             // Ticks Y
             var yTicks = GenerateNiceTicks(visMin, visMax, TargetYTicks);
@@ -226,14 +196,12 @@ namespace MauiAppBrownianMotion.Models
             IFont baseFont = Microsoft.Maui.Graphics.Font.Default;
             canvas.Font = baseFont;
             canvas.FontSize = FontSize;
-
             float maxYLabelW = 0f;
             foreach (var yt in yTicks)
             {
                 string label = FormatY(yt, visMin, visMax);
                 var size = canvas.GetStringSize(label, baseFont, FontSize);
-                if (size.Width > maxYLabelW)
-                    maxYLabelW = size.Width;
+                if (size.Width > maxYLabelW) maxYLabelW = size.Width;
             }
             float leftPad = MathF.Max((float)Padding.Left, maxYLabelW + 12f);
 
@@ -244,9 +212,7 @@ namespace MauiAppBrownianMotion.Models
                 topWithTooltip,
                 dirtyRect.Width - leftPad - (float)Padding.Right,
                 dirtyRect.Height - topWithTooltip - (float)Padding.Bottom);
-
-            if (plot.Width <= 0 || plot.Height <= 0)
-                return;
+            if (plot.Width <= 0 || plot.Height <= 0) return;
 
             // Ticks X locais/globais
             var xTicksLocal = GenerateIndexTicks(visibleCount, TargetXTicks);
@@ -256,19 +222,19 @@ namespace MauiAppBrownianMotion.Models
             canvas.SaveState();
             canvas.ClipRectangle(dirtyRect);
 
-            DrawGrid(canvas, plot, yTicks, xTicksLocal, visMin, visMax, visibleCount); // atualizado
+            DrawGrid(canvas, plot, yTicks, xTicksLocal, visMin, visMax, visibleCount);
             DrawAxes(canvas, plot);
             DrawYLabels(canvas, plot, yTicks, visMin, visMax, leftPad);
             DrawXLabels(canvas, plot, xTicksLocal, xTicksGlobal, visibleCount);
             DrawSeries(canvas, plot, paths, startIndex, endIndex, visibleCount, visMin, visMax);
-            if (HoverEnabled)
-                DrawHover(canvas, plot, paths, startIndex, endIndex, visibleCount, visMin, visMax, dirtyRect, baseFont);
+            if (HoverEnabled) DrawHover(canvas, plot, paths, startIndex, endIndex, visibleCount, visMin, visMax, dirtyRect, baseFont);
             DrawTitles(canvas, plot, leftPad);
 
             canvas.RestoreState();
         }
 
         #region Draw Sections
+        // Desenha grade (linhas horizontais e verticais) alinhada à escala dos dados evitando jitter através de alinhamento sub-pixel.
         private void DrawGrid(
             ICanvas canvas,
             RectF plot,
@@ -294,6 +260,7 @@ namespace MauiAppBrownianMotion.Models
             }
         }
 
+        // Desenha os eixos principal Y (esquerda) e X (inferior) usando cores e espessura configuradas.
         private void DrawAxes(ICanvas canvas, RectF plot)
         {
             canvas.StrokeColor = AxisColor;
@@ -302,6 +269,7 @@ namespace MauiAppBrownianMotion.Models
             canvas.DrawLine(plot.Left, AlignPx(plot.Bottom), plot.Right, AlignPx(plot.Bottom));
         }
 
+        // Renderiza labels e marcações no eixo Y garantindo espaço adequado calculado previamente.
         private void DrawYLabels(
             ICanvas canvas,
             RectF plot,
@@ -322,6 +290,7 @@ namespace MauiAppBrownianMotion.Models
             }
         }
 
+        // Renderiza labels e marcações no eixo X convertendo índices locais para globais e exibindo base 1 ao usuário.
         private void DrawXLabels(
             ICanvas canvas,
             RectF plot,
@@ -342,6 +311,7 @@ namespace MauiAppBrownianMotion.Models
             }
         }
 
+        // Desenha todas as séries visíveis com interpolação simples linha a linha; aplica estilo (cor/tracejado) individual recuperado por índice.
         private void DrawSeries(
             ICanvas canvas,
             RectF plot,
@@ -355,13 +325,10 @@ namespace MauiAppBrownianMotion.Models
             for (int si = 0; si < paths.Count; si++)
             {
                 var series = paths[si];
-                if (series.Length < 2)
-                    continue;
-                if (startIndex >= series.Length)
-                    continue;
+                if (series.Length < 2) continue;
+                if (startIndex >= series.Length) continue;
                 int localVisibleEnd = Math.Min(endIndex, series.Length - 1);
-                if (localVisibleEnd <= startIndex)
-                    continue;
+                if (localVisibleEnd <= startIndex) continue;
 
                 var style = GetSeriesStyle(si);
                 canvas.StrokeSize = style.StrokeSize;
@@ -371,21 +338,20 @@ namespace MauiAppBrownianMotion.Models
                 float xStep = plot.Width / Math.Max(1, (visibleCount - 1));
                 float prevX = plot.Left;
                 float prevY = ValueToY(series[startIndex], visMin, visMax, plot);
-
                 for (int global = startIndex + 1; global <= localVisibleEnd; global++)
                 {
                     int local = global - startIndex;
                     float x = plot.Left + local * xStep;
                     float y = ValueToY(series[global], visMin, visMax, plot);
                     canvas.DrawLine(prevX, prevY, x, y);
-                    prevX = x;
-                    prevY = y;
+                    prevX = x; prevY = y;
                 }
             }
             // Reset dash caso alguma série tenha usado
             canvas.StrokeDashPattern = null;
         }
 
+        // Calcula índice global a partir da posição do mouse (hover), determina série mais próxima, mostra tooltip adaptativa e destaca série e ponto.
         private void DrawHover(
             ICanvas canvas,
             RectF plot,
@@ -398,51 +364,33 @@ namespace MauiAppBrownianMotion.Models
             RectF dirtyRect,
             IFont baseFont)
         {
-            if (!HoverEnabled)
-                return;
-            if (!HoverPoint.HasValue)
-                return;
+            if (!HoverEnabled) return;
+            if (!HoverPoint.HasValue) return;
             var hp = HoverPoint.Value;
-            if (!(hp.X >= plot.Left && hp.X <= plot.Right && hp.Y >= plot.Top && hp.Y <= plot.Bottom && visibleCount > 0))
-                return;
+            if (!(hp.X >= plot.Left && hp.X <= plot.Right && hp.Y >= plot.Top && hp.Y <= plot.Bottom && visibleCount > 0)) return;
 
             double tLocal = (hp.X - plot.Left) / plot.Width;
-            int localIdx = Math.Clamp(
-                (int)Math.Round(Math.Clamp(tLocal, 0, 1) * (visibleCount - 1)),
-                0,
-                visibleCount - 1);
+            int localIdx = Math.Clamp((int)Math.Round(Math.Clamp(tLocal, 0, 1) * (visibleCount - 1)), 0, visibleCount - 1);
             int globalIdx = startIndex + localIdx;
-
             float hoverX = LocalIndexToX(localIdx, visibleCount, plot);
 
-            int closestSeriesIndex = -1;
-            double closestValue = double.NaN;
-            float smallestDy = float.MaxValue;
+            int closestSeriesIndex = -1; double closestValue = double.NaN; float smallestDy = float.MaxValue;
             for (int si = 0; si < paths.Count; si++)
             {
                 var s = paths[si];
-                if (globalIdx >= s.Length)
-                    continue;
+                if (globalIdx >= s.Length) continue;
                 float yVal = ValueToY(s[globalIdx], visMin, visMax, plot);
                 float dy = MathF.Abs(yVal - hp.Y);
-                if (dy < smallestDy)
-                {
-                    smallestDy = dy;
-                    closestSeriesIndex = si;
-                    closestValue = s[globalIdx];
-                }
+                if (dy < smallestDy) { smallestDy = dy; closestSeriesIndex = si; closestValue = s[globalIdx]; }
             }
 
             canvas.StrokeColor = Colors.Black.WithAlpha(0.35f);
             canvas.StrokeSize = 1;
             canvas.DrawLine(AlignPx(hoverX), plot.Top, AlignPx(hoverX), plot.Bottom);
-
-            if (closestSeriesIndex < 0)
-                return;
+            if (closestSeriesIndex < 0) return;
 
             var chosenStyle = GetSeriesStyle(closestSeriesIndex);
             var seriesColor = chosenStyle.StrokeColor;
-
             // ---- Tooltip Formatting ----
             string priceDisplay = FormatPriceTooltip(closestValue);
             string tip = $"Dia: {globalIdx + 1}\nSérie: {closestSeriesIndex + 1}\nPreço: {priceDisplay}"; // multi-linha para melhor leitura
@@ -453,19 +401,15 @@ namespace MauiAppBrownianMotion.Models
             float boxH = tipSize.Height + 16f;
 
             float boxX = hoverX + 8f;
-            if (boxX + boxW > dirtyRect.Right)
-                boxX = hoverX - 8f - boxW;
+            if (boxX + boxW > dirtyRect.Right) boxX = hoverX - 8f - boxW;
             boxX = MathF.Min(MathF.Max(boxX, dirtyRect.Left + 1f), dirtyRect.Right - boxW - 1f);
 
             float topBandH = plot.Top - dirtyRect.Top;
             float bottomBandH = dirtyRect.Bottom - plot.Bottom;
             float boxY;
-            if (boxH + 2f <= topBandH)
-                boxY = plot.Top - boxH - 2f;
-            else if (boxH + 2f <= bottomBandH)
-                boxY = plot.Bottom + 2f;
-            else
-                boxY = plot.Top + 2f;
+            if (boxH + 2f <= topBandH) boxY = plot.Top - boxH - 2f;
+            else if (boxH + 2f <= bottomBandH) boxY = plot.Bottom + 2f;
+            else boxY = plot.Top + 2f;
             boxY = MathF.Min(MathF.Max(boxY, dirtyRect.Top + 1f), dirtyRect.Bottom - boxH - 1f);
 
             canvas.FillColor = Colors.White.WithAlpha(0.94f);
@@ -508,14 +452,14 @@ namespace MauiAppBrownianMotion.Models
                         float x = plot.Left + local * xStep;
                         float y = ValueToY(chosenSeries[global], visMin, visMax, plot);
                         canvas.DrawLine(prevX, prevY, x, y);
-                        prevX = x;
-                        prevY = y;
+                        prevX = x; prevY = y;
                     }
                     canvas.StrokeDashPattern = null; // limpar
                 }
             }
         }
 
+        // Desenha títulos dos eixos com rotação para o eixo Y e ajuste baseado no padding calculado.
         void DrawTitles(ICanvas canvas, RectF plot, float leftPad)
         {
             canvas.FontColor = AxisColor;
@@ -546,20 +490,15 @@ namespace MauiAppBrownianMotion.Models
         #endregion
 
         #region Helpers
-        static float AlignPx(float v) => MathF.Round(v) + 0.5f;
+        static float AlignPx(float v) => MathF.Round(v) + 0.5f; // Alinha traço no pixel físico para nitidez
+        static float ValueToY(double value, double min, double max, RectF plot) => plot.Bottom - (float)((value - min) / (max - min) * plot.Height); // Mapeia valor para coordenada Y invertida
+        static float LocalIndexToX(int localIndex, int visibleCount, RectF plot) => visibleCount <= 1 ? plot.Left : plot.Left + (float)localIndex / (visibleCount - 1) * plot.Width; // Converte índice local para X
 
-        static float ValueToY(double value, double min, double max, RectF plot) => plot.Bottom -
-            (float)((value - min) / (max - min) * plot.Height);
-
-        static float LocalIndexToX(int localIndex, int visibleCount, RectF plot) => visibleCount <= 1
-            ? plot.Left
-            : plot.Left + (float)localIndex / (visibleCount - 1) * plot.Width;
-
+        // Gera ticks "agradáveis" (nice numbers) para escala Y usando arredondamentos progressivos.
         static List<double> GenerateNiceTicks(double min, double max, int target)
         {
             var ticks = new List<double>();
-            if (target < 2)
-                target = 2;
+            if (target < 2) target = 2;
             double range = NiceNum(max - min, false);
             double step = NiceNum(range / (target - 1), true);
             double graphMin = Math.Floor(min / step) * step;
@@ -567,112 +506,74 @@ namespace MauiAppBrownianMotion.Models
             for (double v = graphMin; v <= graphMax + 0.5 * step; v += step)
             {
                 double rv = Math.Round(v / step) * step;
-                if (rv >= graphMin - 1e-9 && rv <= graphMax + 1e-9)
-                    ticks.Add(rv);
+                if (rv >= graphMin - 1e-9 && rv <= graphMax + 1e-9) ticks.Add(rv);
             }
             return ticks;
         }
 
+        // Normaliza número para base 1,2,5,10 * 10^exp facilitando criação de passos "humanos".
         static double NiceNum(double value, bool round)
         {
-            if (value <= 0)
-                return 1;
+            if (value <= 0) return 1;
             double exp = Math.Floor(Math.Log10(value));
             double f = value / Math.Pow(10, exp);
             double nf = round ? (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) : (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10);
             return nf * Math.Pow(10, exp);
         }
 
+        // Calcula posições de ticks de índice distribuindo aproximadamente target marcadores.
         static List<int> GenerateIndexTicks(int length, int target)
         {
             var ticks = new List<int>();
-            if (length <= 1)
-            {
-                ticks.Add(0);
-                return ticks;
-            }
-            if (target < 2)
-                target = 2;
+            if (length <= 1) { ticks.Add(0); return ticks; }
+            if (target < 2) target = 2;
             int step = Math.Max(1, (int)Math.Round((length - 1) / (double)(target - 1)));
-            for (int i = 0; i < length; i += step)
-                ticks.Add(i);
-            if (ticks[^1] != length - 1)
-                ticks.Add(length - 1);
+            for (int i = 0; i < length; i += step) ticks.Add(i);
+            if (ticks[^1] != length - 1) ticks.Add(length - 1);
             return ticks;
         }
 
+        // Formata rótulos Y escolhendo precisão adaptativa conforme faixa de valores.
         static string FormatY(double v, double min, double max)
         {
             double range = Math.Abs(max - min);
             double absMax = Math.Max(Math.Abs(min), Math.Abs(max));
-            if (absMax >= 1_000)
-                return AbbreviateNumber(v);
-            if (range < 1e-6)
-                return v.ToString("0.####");
-            if (range < 0.01)
-                return v.ToString("0.####");
-            if (range < 0.1)
-                return v.ToString("0.###");
-            if (range < 1)
-                return v.ToString("0.##");
-            if (range < 10)
-                return v.ToString("0.##");
-            if (range < 100)
-                return v.ToString("0.#");
+            if (absMax >= 1_000) return AbbreviateNumber(v);
+            if (range < 1e-6) return v.ToString("0.####");
+            if (range < 0.01) return v.ToString("0.####");
+            if (range < 0.1) return v.ToString("0.###");
+            if (range < 1) return v.ToString("0.##");
+            if (range < 10) return v.ToString("0.##");
+            if (range < 100) return v.ToString("0.#");
             return v.ToString("0");
         }
 
+        // Abrevia números grandes (K, M, B, T) mantendo legibilidade e precisão relativa razoável.
         static string AbbreviateNumber(double value)
         {
             double abs = Math.Abs(value);
-            string suffix;
-            double divisor;
-            if (abs >= 1_000_000_000_000)
-            {
-                suffix = "T";
-                divisor = 1_000_000_000_000d;
-            }
-            else if (abs >= 1_000_000_000)
-            {
-                suffix = "B";
-                divisor = 1_000_000_000d;
-            }
-            else if (abs >= 1_000_000)
-            {
-                suffix = "M";
-                divisor = 1_000_000d;
-            }
-            else if (abs >= 1_000)
-            {
-                suffix = "K";
-                divisor = 1_000d;
-            }
-            else
-            {
-                suffix = string.Empty;
-                divisor = 1d;
-            }
+            string suffix; double divisor;
+            if (abs >= 1_000_000_000_000) { suffix = "T"; divisor = 1_000_000_000_000d; }
+            else if (abs >= 1_000_000_000) { suffix = "B"; divisor = 1_000_000_000d; }
+            else if (abs >= 1_000_000) { suffix = "M"; divisor = 1_000_000d; }
+            else if (abs >= 1_000) { suffix = "K"; divisor = 1_000d; }
+            else { suffix = string.Empty; divisor = 1d; }
             double scaled = value / divisor;
             string format = scaled >= 100 ? "0" : scaled >= 10 ? "0.#" : "0.##";
             return scaled.ToString(format) + suffix;
         }
 
+        // Formata valor de preço para tooltip com abreviação condicional e uso da cultura local.
         static string FormatPriceTooltip(double value)
         {
             var culture = CultureInfo.CurrentCulture;
             double abs = Math.Abs(value);
-            if (abs >= 1_000_000_000_000)
-                return $"R$ {value / 1_000_000_000_000d:0.##}T";
-            if (abs >= 1_000_000_000)
-                return $"R$ {value / 1_000_000_000d:0.##}B";
-            if (abs >= 1_000_000)
-                return $"R$ {value / 1_000_000d:0.##}M";
-            if (abs >= 1_000)
-                return $"R$ {value / 1_000d:0.##}K";
-            if (abs >= 1)
-                return $"R$ {value.ToString("N3", culture)}";
-            if (abs >= 0.001)
-                return $"R$ {value.ToString("0.####", culture)}";
+            if (abs >= 1_000_000_000_000) return $"R$ {value / 1_000_000_000_000d:0.##}T";
+            if (abs >= 1_000_000_000) return $"R$ {value / 1_000_000_000d:0.##}B";
+            if (abs >= 1_000_000) return $"R$ {value / 1_000_000d:0.##}M";
+            if (abs >= 1_000) return $"R$ {value / 1_000d:0.##}K";
+            if (abs >= 1) return $"R$ {value.ToString("N3", culture)}";
+            if (abs >= 0.001) return $"R$ {value.ToString("0.####", culture)}";
             return $"R$ {value:E2}";
         }
         #endregion
